@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Apiario</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Apiario">
+<meta name="theme-color" content="#92400E">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --amber:#92400E;--amber-l:#B45309;--gold:#F59E0B;--gold-l:#FCD34D;
+  --honey:#FFFBEB;--honey-d:#FEF3C7;--white:#fff;--text:#1C1C1C;
+  --text2:#6B7280;--sep:#E5E7EB;--red:#DC2626;--green:#16A34A;--blue:#2563EB;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--honey);font-family:-apple-system,sans-serif;color:var(--text);font-size:16px}
+body{padding-bottom:calc(56px + var(--safe-bot))}
+
+/* ── TOP BAR ── */
+.topbar{
+  background:var(--amber);
+  padding:calc(12px + var(--safe-top)) 16px 12px;
+  position:sticky;top:0;z-index:50;
+}
+.topbar h1{color:var(--gold-l);font-size:1.05rem;font-weight:700}
+
+/* ── BOTTOM NAV ── */
+.bnav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--white);border-top:1px solid var(--sep);
+  display:flex;z-index:50;
+  padding-bottom:var(--safe-bot);
+}
+.bnav button{
+  flex:1;background:none;border:none;cursor:pointer;
+  padding:8px 2px 6px;display:flex;flex-direction:column;
+  align-items:center;gap:1px;color:var(--text2);
+  min-height:48px;transition:color .15s;
+}
+.bnav button.active{color:var(--amber)}
+.bnav .bico{font-size:1.4rem;line-height:1}
+.bnav .blbl{font-size:9px;font-weight:500}
+
+/* ── SECTIONS ── */
+.sec{display:none;padding:16px 16px 8px}.sec.on{display:block}
+
+/* ── STATS CARDS ── */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.stat{background:var(--white);border-radius:14px;padding:14px;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);border-left:4px solid var(--gold)}
+.stat.r{border-left-color:var(--red)}.stat.g{border-left-color:var(--green)}.stat.b{border-left-color:var(--blue)}
+.stat-val{font-size:2rem;font-weight:700;color:var(--amber);line-height:1}
+.stat.r .stat-val{color:var(--red)}.stat.g .stat-val{color:var(--green)}.stat.b .stat-val{color:var(--blue)}
+.stat-lbl{font-size:.72rem;color:var(--amber);margin-top:3px}
+.stat.r .stat-lbl{color:var(--red)}.stat.g .stat-lbl{color:var(--green)}.stat.b .stat-lbl{color:var(--blue)}
+
+/* ── SECTION HEADER ── */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-hdr h2{font-size:1rem;font-weight:700;color:var(--amber)}
+.btn-add{background:var(--gold);color:var(--white);border:none;cursor:pointer;
+  padding:8px 16px;border-radius:20px;font-size:.85rem;font-weight:600}
+
+/* ── SEARCH ── */
+.search-wrap{margin-bottom:12px}
+.search-wrap input{
+  width:100%;padding:10px 14px;border:none;border-radius:12px;
+  background:var(--white);font-size:.9rem;color:var(--text);
+  box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+.search-wrap input::placeholder{color:var(--text2)}
+
+/* ── CARD LIST ── */
+.clist{background:var(--white);border-radius:16px;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;margin-bottom:16px}
+.citem{display:flex;align-items:center;padding:14px 16px;
+  border-bottom:1px solid var(--sep);gap:12px;cursor:pointer}
+.citem:last-child{border-bottom:none}
+.citem:active{background:var(--honey)}
+.citem-left{flex:1;min-width:0}
+.citem-title{font-size:.95rem;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.citem-sub{font-size:.78rem;color:var(--text2);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.citem-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.citem-actions{display:flex;gap:6px}
+.btn-sm{background:none;border:1px solid var(--sep);cursor:pointer;
+  padding:5px 10px;border-radius:8px;font-size:.8rem}
+.btn-del{color:var(--red);border-color:#FECACA}
+
+/* ── BADGES ── */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;
+  font-size:.72rem;font-weight:600;white-space:nowrap}
+.ok{background:#DCFCE7;color:var(--green)}
+.warn{background:#FEF3C7;color:#D97706}
+.bad{background:#FEE2E2;color:var(--red)}
+.neu{background:#F3F4F6;color:#374151}
+
+/* ── DASH LIST ── */
+.dash-item{display:flex;align-items:center;padding:12px 16px;
+  border-bottom:1px solid var(--sep);gap:10px}
+.dash-item:last-child{border-bottom:none}
+.dash-num{font-weight:700;font-size:.9rem;width:64px;flex-shrink:0}
+.dash-info{flex:1;min-width:0}
+.dash-info-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}
+.dash-right{text-align:right;flex-shrink:0}
+.dash-right .kg{font-size:1rem;font-weight:700;color:var(--amber)}
+.dash-right .lbl{font-size:.68rem;color:var(--text2)}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 20px;color:var(--text2);font-size:.9rem}
+
+/* ── OVERLAY / MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;
+  align-items:flex-end}
+.overlay.on{display:flex}
+.modal{background:var(--white);border-radius:20px 20px 0 0;
+  width:100%;max-height:92vh;display:flex;flex-direction:column}
+.modal-bar{width:40px;height:4px;background:var(--sep);border-radius:2px;
+  margin:10px auto 0}
+.modal-hdr{padding:14px 20px 10px;border-bottom:1px solid var(--sep);
+  display:flex;align-items:center;justify-content:space-between}
+.modal-hdr h3{font-size:1rem;font-weight:700;color:var(--amber)}
+.modal-close{background:none;border:none;cursor:pointer;
+  font-size:1.2rem;color:var(--text2);padding:4px}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1;
+  padding-bottom:calc(16px + var(--safe-bot))}
+
+/* ── FORMS ── */
+.fgrp{margin-bottom:14px}
+.fgrp label{display:block;font-size:.75rem;font-weight:600;
+  color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.fgrp input,.fgrp select,.fgrp textarea{
+  width:100%;padding:12px 14px;border:1.5px solid var(--sep);
+  border-radius:12px;font-size:.95rem;background:var(--honey);
+  color:var(--text);-webkit-appearance:none;appearance:none;
+}
+.fgrp select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;background-color:var(--honey)}
+.fgrp input:focus,.fgrp select:focus,.fgrp textarea:focus{outline:none;border-color:var(--gold);background:var(--white)}
+.fgrp textarea{resize:none;min-height:72px;line-height:1.5}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-save{width:100%;background:var(--gold);color:var(--white);border:none;
+  cursor:pointer;padding:14px;border-radius:14px;font-size:1rem;
+  font-weight:700;margin-top:6px}
+.btn-save:active{opacity:.8}
+</style>
+</head>
+<body>
+
+<div class="topbar"><h1>🐝 Gestione Apiario</h1></div>
+
+<main>
+
+<!-- DASHBOARD -->
+<div id="s-dashboard" class="sec on">
+  <div class="stats" id="dash-stats"></div>
+  <div class="sec-hdr"><h2>Situazione Arnie</h2></div>
+  <div class="clist" id="dash-list"></div>
+</div>
+
+<!-- ARNIE -->
+<div id="s-arnie" class="sec">
+  <div class="sec-hdr">
+    <h2>Arnie</h2>
+    <button class="btn-add" onclick="openM('arnia')">+ Nuova</button>
+  </div>
+  <div class="search-wrap"><input placeholder="Cerca…" oninput="rArnie(this.value)"></div>
+  <div id="list-arnie"></div>
+</div>
+
+<!-- REGINE -->
+<div id="s-regine" class="sec">
+  <div class="sec-hdr">
+    <h2>Regine</h2>
+    <button class="btn-add" onclick="openM('regina')">+ Nuova</button>
+  </div>
+  <div class="search-wrap"><input placeholder="Cerca…" oninput="rRegine(this.value)"></div>
+  <div id="list-regine"></div>
+</div>
+
+<!-- TRATTAMENTI -->
+<div id="s-trattamenti" class="sec">
+  <div class="sec-hdr">
+    <h2>Trattamenti</h2>
+    <button class="btn-add" onclick="openM('trattamento')">+ Nuovo</button>
+  </div>
+  <div class="search-wrap"><input placeholder="Cerca…" oninput="rTratt(this.value)"></div>
+  <div id="list-trattamenti"></div>
+</div>
+
+<!-- PRODUZIONE -->
+<div id="s-produzione" class="sec">
+  <div class="sec-hdr">
+    <h2>Produzione</h2>
+    <button class="btn-add" onclick="openM('produzione')">+ Raccolta</button>
+  </div>
+  <div class="search-wrap"><input placeholder="Cerca…" oninput="rProd(this.value)"></div>
+  <div id="list-produzione"></div>
+</div>
+
+<!-- ISPEZIONI -->
+<div id="s-ispezioni" class="sec">
+  <div class="sec-hdr">
+    <h2>Ispezioni</h2>
+    <button class="btn-add" onclick="openM('ispezione')">+ Nuova</button>
+  </div>
+  <div class="search-wrap"><input placeholder="Cerca…" oninput="rIsp(this.value)"></div>
+  <div id="list-ispezioni"></div>
+</div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <button id="nav-dashboard" class="active" onclick="go('dashboard')">
+    <span class="bico">📊</span><span class="blbl">Dashboard</span></button>
+  <button id="nav-arnie" onclick="go('arnie')">
+    <span class="bico">🏠</span><span class="blbl">Arnie</span></button>
+  <button id="nav-regine" onclick="go('regine')">
+    <span class="bico">👑</span><span class="blbl">Regine</span></button>
+  <button id="nav-trattamenti" onclick="go('trattamenti')">
+    <span class="bico">💊</span><span class="blbl">Trattam.</span></button>
+  <button id="nav-produzione" onclick="go('produzione')">
+    <span class="bico">🍯</span><span class="blbl">Produz.</span></button>
+  <button id="nav-ispezioni" onclick="go('ispezioni')">
+    <span class="bico">🔍</span><span class="blbl">Ispezioni</span></button>
+</nav>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeM()">
+  <div class="modal">
+    <div class="modal-bar"></div>
+    <div class="modal-hdr">
+      <h3 id="m-title"></h3>
+      <button class="modal-close" onclick="closeM()">✕</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
+
+<script>
+const KEY='apiario_v2'
+var db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[]}
+let eId=null,eType=null
+
+function load(){
+  try{
+    if(window.__INIT_DATA__){db=window.__INIT_DATA__;return}
+    const s=localStorage.getItem(KEY);if(s)db=JSON.parse(s)
+  }catch(e){}
+  if(!db.arnie||!db.arnie.length){
+    db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[]}
+    for(let i=1;i<=30;i++)db.arnie.push({id:aid(i),tipo:'Langstroth',posizione:'',dataInst:'',colore:'',telaini:'',stato:'Attiva',note:''})
+    save()
+  }
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
+function aid(n){return 'Arnia '+String(n).padStart(2,'0')}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function fmt(d){if(!d)return'';const p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d}
+function esc(s){return s!=null?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):''}
+function bdg(t,c){return`<span class="badge ${c}">${esc(t)}</span>`}
+function qst(yr){if(!yr)return bdg('N/D','neu');return(new Date().getFullYear()-parseInt(yr))>=3?bdg('⚠️ Da rinnovare','warn'):bdg('✅ Valida','ok')}
+function lastOf(arr,af,av,df){return[...arr].filter(r=>r[af]===av).sort((a,b)=>b[df]>a[df]?1:-1)[0]||null}
+function suOf(arr,af,av,kf){return arr.filter(r=>r[af]===av).reduce((s,r)=>s+(parseFloat(r[kf])||0),0)}
+
+// NAV
+function go(sec){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'))
+  document.querySelectorAll('.bnav button').forEach(b=>b.classList.remove('active'))
+  document.getElementById('s-'+sec).classList.add('on')
+  document.getElementById('nav-'+sec).classList.add('active')
+  render(sec); window.scrollTo(0,0)
+}
+function render(sec){
+  if(sec==='dashboard')rDash()
+  else if(sec==='arnie')rArnie()
+  else if(sec==='regine')rRegine()
+  else if(sec==='trattamenti')rTratt()
+  else if(sec==='produzione')rProd()
+  else if(sec==='ispezioni')rIsp()
+}
+
+// DASHBOARD
+function rDash(){
+  const y=new Date().getFullYear()
+  const ym=y+'-'+String(new Date().getMonth()+1).padStart(2,'0')
+  const att=db.arnie.filter(a=>a.stato==='Attiva').length
+  const rv=db.regine.filter(r=>r.annoIntro&&(y-parseInt(r.annoIntro))<3).length
+  const rw=db.regine.filter(r=>r.annoIntro&&(y-parseInt(r.annoIntro))>=3).length
+  const kg=db.produzione.filter(p=>p.data&&p.data.startsWith(y)).reduce((s,p)=>s+(parseFloat(p.kg)||0),0)
+  const tm=db.trattamenti.filter(t=>t.dataInizio&&t.dataInizio.startsWith(ym)).length
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat"><div class="stat-val">${att}</div><div class="stat-lbl">Arnie attive</div></div>
+    <div class="stat g"><div class="stat-val">${rv}</div><div class="stat-lbl">Regine valide</div></div>
+    <div class="stat r"><div class="stat-val">${rw}</div><div class="stat-lbl">Da rinnovare</div></div>
+    <div class="stat"><div class="stat-val">${kg.toFixed(1)}</div><div class="stat-lbl">kg miele ${y}</div></div>
+    <div class="stat b"><div class="stat-val">${tm}</div><div class="stat-lbl">Trattam. mese</div></div>`
+  let h=''
+  db.arnie.forEach(a=>{
+    const reg=db.regine.find(r=>r.arniaId===a.id)
+    const lt=lastOf(db.trattamenti,'arniaId',a.id,'dataInizio')
+    const li=lastOf(db.ispezioni,'arniaId',a.id,'data')
+    const kgy=suOf(db.produzione.filter(p=>p.data&&p.data.startsWith(y)),'arniaId',a.id,'kg')
+    const sb=a.stato==='Attiva'?bdg('Attiva','ok'):a.stato==='Morta'?bdg('Morta','bad'):bdg(a.stato,'neu')
+    h+=`<div class="dash-item">
+      <div class="dash-num">${esc(a.id)}</div>
+      <div class="dash-info">
+        ${sb}
+        <div class="dash-info-row">
+          ${reg?qst(reg.annoIntro):bdg('No regina','neu')}
+          ${lt?`<span style="font-size:.72rem;color:var(--text2)">${esc(lt.prodotto)}</span>`:''}
+        </div>
+        ${li?`<div style="font-size:.7rem;color:var(--text2);margin-top:2px">Isp. ${fmt(li.data)}</div>`:''}
+      </div>
+      <div class="dash-right">
+        ${kgy>0?`<div class="kg">${kgy.toFixed(1)}</div><div class="lbl">kg</div>`:''}
+      </div>
+    </div>`
+  })
+  document.getElementById('dash-list').innerHTML=h||'<div class="empty">Nessun dato</div>'
+}
+
+// ARNIE
+function rArnie(q=''){
+  const list=db.arnie.filter(a=>!q||JSON.stringify(a).toLowerCase().includes(q.toLowerCase()))
+  let h=''
+  list.forEach(a=>{
+    const sb=a.stato==='Attiva'?bdg('Attiva','ok'):a.stato==='Morta'?bdg('Morta','bad'):bdg(a.stato,'neu')
+    const sub=[a.tipo,a.posizione,a.telaini?a.telaini+' telaini':''].filter(Boolean).join(' · ')
+    h+=`<div class="clist" style="margin-bottom:10px">
+      <div class="citem">
+        <div class="citem-left">
+          <div class="citem-title">${esc(a.id)}</div>
+          <div class="citem-sub">${esc(sub)}</div>
+          ${a.dataInst?`<div class="citem-sub">Installata il ${fmt(a.dataInst)}</div>`:''}
+          ${a.note?`<div class="citem-sub" style="font-style:italic">${esc(a.note)}</div>`:''}
+        </div>
+        <div class="citem-right">
+          ${sb}
+          <div class="citem-actions">
+            <button class="btn-sm" onclick="openM('arnia','${esc(a.id)}')">✏️</button>
+            <button class="btn-sm btn-del" onclick="del('arnie','${esc(a.id)}','arnie')">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>`
+  })
+  document.getElementById('list-arnie').innerHTML=h||'<div class="empty">Nessuna arnia</div>'
+}
+
+// REGINE
+function rRegine(q=''){
+  const list=db.regine.filter(r=>!q||JSON.stringify(r).toLowerCase().includes(q.toLowerCase()))
+  let h=''
+  list.forEach(r=>{
+    const sub=[r.razza,r.colore?'Marcatura: '+r.colore:''].filter(Boolean).join(' · ')
+    h+=`<div class="clist" style="margin-bottom:10px">
+      <div class="citem">
+        <div class="citem-left">
+          <div class="citem-title">${esc(r.arniaId)}</div>
+          <div class="citem-sub">Nata ${r.annoNascita||'N/D'} · Introdotta ${r.annoIntro||'N/D'}</div>
+          ${sub?`<div class="citem-sub">${esc(sub)}</div>`:''}
+          ${r.madre?`<div class="citem-sub">Madre: ${esc(r.madre)}</div>`:''}
+        </div>
+        <div class="citem-right">
+          ${qst(r.annoIntro)}
+          <div class="citem-actions">
+            <button class="btn-sm" onclick="openM('regina','${r.id}')">✏️</button>
+            <button class="btn-sm btn-del" onclick="del('regine','${r.id}','regine')">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>`
+  })
+  document.getElementById('list-regine').innerHTML=h||'<div class="empty">Nessuna regina registrata</div>'
+}
+
+// TRATTAMENTI
+function rTratt(q=''){
+  const list=[...db.trattamenti].sort((a,b)=>b.dataInizio>a.dataInizio?1:-1)
+    .filter(t=>!q||JSON.stringify(t).toLowerCase().includes(q.toLowerCase()))
+  let h=''
+  list.forEach(t=>{
+    const pb=t.parassita?bdg(t.parassita,'warn'):''
+    h+=`<div class="clist" style="margin-bottom:10px">
+      <div class="citem">
+        <div class="citem-left">
+          <div class="citem-title">${fmt(t.dataInizio)}${t.dataFine?' → '+fmt(t.dataFine):''}</div>
+          <div class="citem-sub">${esc(t.arniaId||'Tutto apiario')} · ${esc(t.prodotto)}</div>
+          ${t.dose?`<div class="citem-sub">Dose: ${esc(t.dose)}</div>`:''}
+          ${t.efficacia?`<div class="citem-sub">Efficacia: ${esc(t.efficacia)}%</div>`:''}
+        </div>
+        <div class="citem-right">
+          ${pb}
+          <div class="citem-actions">
+            <button class="btn-sm" onclick="openM('trattamento','${t.id}')">✏️</button>
+            <button class="btn-sm btn-del" onclick="del('trattamenti','${t.id}','trattamenti')">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>`
+  })
+  document.getElementById('list-trattamenti').innerHTML=h||'<div class="empty">Nessun trattamento</div>'
+}
+
+// PRODUZIONE
+function rProd(q=''){
+  const list=[...db.produzione].sort((a,b)=>b.data>a.data?1:-1)
+    .filter(p=>!q||JSON.stringify(p).toLowerCase().includes(q.toLowerCase()))
+  const tot=list.reduce((s,p)=>s+(parseFloat(p.kg)||0),0)
+  let h=tot>0?`<div style="padding:10px 14px;font-size:.8rem;color:var(--text2)">Totale filtrato: <b>${tot.toFixed(1)} kg</b></div>`:''
+  list.forEach(p=>{
+    const qb=p.qualita==='Ottima'?bdg('Ottima','ok'):p.qualita==='Scartata'?bdg('Scartata','bad'):p.qualita?bdg(p.qualita,'neu'):''
+    h+=`<div class="clist" style="margin-bottom:10px">
+      <div class="citem">
+        <div class="citem-left">
+          <div class="citem-title" style="font-size:1.1rem">${p.kg?`<b>${p.kg} kg</b>`:''} ${esc(p.tipoMiele)}</div>
+          <div class="citem-sub">${esc(p.arniaId)} · ${fmt(p.data)}</div>
+          ${p.umidita?`<div class="citem-sub">Umidità: ${esc(p.umidita)}%${p.melari?' · '+p.melari+' melari':''}</div>`:''}
+          ${p.lotto?`<div class="citem-sub">Lotto: ${esc(p.lotto)}</div>`:''}
+        </div>
+        <div class="citem-right">
+          ${qb}
+          <div class="citem-actions">
+            <button class="btn-sm" onclick="openM('produzione','${p.id}')">✏️</button>
+            <button class="btn-sm btn-del" onclick="del('produzione','${p.id}','produzione')">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>`
+  })
+  document.getElementById('list-produzione').innerHTML=h||'<div class="empty">Nessuna raccolta</div>'
+}
+
+// ISPEZIONI
+function rIsp(q=''){
+  const list=[...db.ispezioni].sort((a,b)=>b.data>a.data?1:-1)
+    .filter(i=>!q||JSON.stringify(i).toLowerCase().includes(q.toLowerCase()))
+  let h=''
+  list.forEach(i=>{
+    const fz=i.forza?parseInt(i.forza)>=4?bdg('Forza '+i.forza,'ok'):parseInt(i.forza)<=2?bdg('Forza '+i.forza,'bad'):bdg('Forza '+i.forza,'neu'):''
+    const rg=i.regina?bdg('Regina: '+i.regina,i.regina==='Sì'?'ok':'bad'):''
+    h+=`<div class="clist" style="margin-bottom:10px">
+      <div class="citem">
+        <div class="citem-left">
+          <div class="citem-title">${fmt(i.data)} · ${esc(i.arniaId)}</div>
+          <div class="citem-sub" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${rg} ${fz} ${i.varroa?bdg('Varroa: '+i.varroa+'/24h','warn'):''}</div>
+          ${i.problemi?`<div class="citem-sub" style="margin-top:4px">⚠️ ${esc(i.problemi)}</div>`:''}
+          ${i.interventi?`<div class="citem-sub">✅ ${esc(i.interventi)}</div>`:''}
+        </div>
+        <div class="citem-right">
+          <div class="citem-actions">
+            <button class="btn-sm" onclick="openM('ispezione','${i.id}')">✏️</button>
+            <button class="btn-sm btn-del" onclick="del('ispezioni','${i.id}','ispezioni')">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>`
+  })
+  document.getElementById('list-ispezioni').innerHTML=h||'<div class="empty">Nessuna ispezione</div>'
+}
+
+// DELETE
+function del(coll,id,sec){
+  if(!confirm('Eliminare?'))return
+  db[coll]=db[coll].filter(r=>r.id!==id);save();render(sec)
+}
+
+// MODAL
+const aopts=()=>db.arnie.map(a=>`<option value="${esc(a.id)}">${esc(a.id)}</option>`).join('')
+function openM(type,id=null){
+  eType=type;eId=id
+  const d=id?getRec(type,id):{}
+  document.getElementById('m-title').textContent=(id?'Modifica ':'Nuovo ')+
+    {arnia:'Arnia',regina:'Regina',trattamento:'Trattamento',produzione:'Raccolta',ispezione:'Ispezione'}[type]
+  document.getElementById('m-body').innerHTML=buildF(type,d)
+  document.getElementById('overlay').classList.add('on')
+}
+function closeM(){document.getElementById('overlay').classList.remove('on');eId=null;eType=null}
+function getRec(type,id){
+  const m={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni'}
+  return db[m[type]].find(r=>r.id===id)||{}
+}
+
+function fi(k,d,type='text',ph=''){return`<input type="${type}" name="${k}" value="${esc(d[k]??'')}" placeholder="${ph}">`}
+function fs(k,d,opts){const v=d[k]||'';return`<select name="${k}">${opts.map(o=>`<option value="${o}"${v===o?' selected':''}>${o||'— seleziona —'}</option>`).join('')}</select>`}
+function ft(k,d,ph=''){return`<textarea name="${k}" placeholder="${ph}">${esc(d[k]??'')}</textarea>`}
+function fg(lbl,body,full=false){return`<div class="fgrp${full?' full':''}""><label>${lbl}</label>${body}</div>`}
+function fgrid(cols){return`<div class="fgrid">${cols}</div>`}
+
+function buildF(type,d){
+  const btn=`<button type="submit" class="btn-save">Salva</button>`
+  const wrap=b=>`<form onsubmit="submitF(event,'${type}')">${b}${btn}</form>`
+  const ao=aopts()
+
+  if(type==='arnia') return wrap(
+    fgrid(fg('N° Arnia',fi('id',d,'text','Arnia 01'))+fg('Tipo',fs('tipo',d,['Langstroth','Dadant','Lusitana','Top-bar','Altro'])))+
+    fg('Posizione / Apiario',fi('posizione',d))+
+    fgrid(fg('Data Installazione',fi('dataInst',d,'date'))+fg('N° Telaini',fi('telaini',d,'number')))+
+    fgrid(fg('Colore Contrassegno',fi('colore',d))+fg('Stato',fs('stato',d,['Attiva','Inattiva','In osservazione','Sciamata','Morta'])))+
+    fg('Note',ft('note',d)))
+
+  if(type==='regina') return wrap(
+    fgrid(fg('Arnia',`<select name="arniaId">${ao}</select>`)+fg('Anno Nascita',fi('annoNascita',d,'number','2024')))+
+    fgrid(fg('Anno Introduzione',fi('annoIntro',d,'number','2024'))+fg('Razza',fs('razza',d,['','Ligustica','Carnica','Buckfast','Locale','Ibrido','Altro'])))+
+    fgrid(fg('Colore Marcatura',fs('colore',d,['','Bianco','Giallo','Rosso','Verde','Blu']))+fg('Madre (arnia)',fi('madre',d,'text','facoltativo')))+
+    fgrid(fg('Data Sostituzione',fi('dataSost',d,'date'))+fg('Motivo',fi('motivo',d)))+
+    fg('Note',ft('note',d)))
+
+  if(type==='trattamento') return wrap(
+    fgrid(fg('Data Inizio',fi('dataInizio',d,'date'))+fg('Data Fine',fi('dataFine',d,'date')))+
+    fg('Arnia / Apiario',`<select name="arniaId"><option value="">— Tutto l'apiario —</option>${ao}</select>`)+
+    fgrid(fg('Patologia',fs('parassita',d,['','Varroa','Nosema','Mal di maggio','Peste americana','Peste europea','Calcificazione','Aethina tumida','Altro']))+
+      fg('Prodotto',fs('prodotto',d,['','Api-Bioxal (ossalico)','Api-Bioxal sublimazione','Apivar (amitraz)','Thymovar (timolo)','ApiLife Var','MAQS (formico)','Acido formico','Altro'])))+
+    fgrid(fg('Principio Attivo',fi('principio',d))+fg('Dose / Modalità',fi('dose',d)))+
+    fgrid(fg('Temperatura °C',fi('temp',d,'number'))+fg('Efficacia %',fi('efficacia',d,'number')))+
+    fg('Operatore',fi('operatore',d))+fg('Note',ft('note',d)))
+
+  if(type==='produzione') return wrap(
+    fgrid(fg('Data Raccolta',fi('data',d,'date'))+fg('Arnia',`<select name="arniaId">${ao}</select>`))+
+    fgrid(fg('Tipo Miele',fs('tipoMiele',d,['','Millefiori','Acacia','Castagno','Tiglio','Girasole','Agrumi','Eucalipto','Melata','Altro']))+fg('Kg Raccolti',fi('kg',d,'number','0')))+
+    fgrid(fg('N° Melari',fi('melari',d,'number'))+fg('Umidità %',fi('umidita',d,'number')))+
+    fgrid(fg('Qualità',fs('qualita',d,['','Ottima','Buona','Discreta','Scartata']))+fg('Lotto',fi('lotto',d)))+
+    fg('Note',ft('note',d)))
+
+  if(type==='ispezione') return wrap(
+    fgrid(fg('Data',fi('data',d,'date'))+fg('Arnia',`<select name="arniaId">${ao}</select>`))+
+    fgrid(fg('Regina Presente',fs('regina',d,['','Sì','No','N/D']))+fg('Uova',fs('uova',d,['','Sì','No','N/D'])))+
+    fgrid(fg('Larve',fs('larve',d,['','Sì','No','N/D']))+fg('Covata',fs('covata',d,['','Regolare','Irregolare','Assente'])))+
+    fgrid(fg('Sciamatura',fs('sciamatura',d,['','No','Celle reali','Sciame emesso']))+fg('Forza (1-5)',fs('forza',d,['','1','2','3','4','5'])))+
+    fgrid(fg('Varroa caduta/24h',fi('varroa',d,'number'))+fg('Operatore',fi('operatore',d)))+
+    fg('Problemi Rilevati',ft('problemi',d))+fg('Interventi Eseguiti',ft('interventi',d)))
+  return''
+}
+
+function submitF(e,type){
+  e.preventDefault()
+  const fd=new FormData(e.target),data={}
+  fd.forEach((v,k)=>data[k]=v)
+  const m={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni'}
+  const s={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni'}
+  const coll=m[type]
+  if(eId){const i=db[coll].findIndex(r=>r.id===eId);if(i>=0){data.id=eId;db[coll][i]=data}}
+  else{data.id=uid();db[coll].push(data)}
+  save();closeM();render(s[type])
+}
+
+load();rDash()
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'))
+}
+</script>
+</body>
+</html>
