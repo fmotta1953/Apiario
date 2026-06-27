@@ -19,8 +19,8 @@
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bot:env(safe-area-inset-bottom,0px);
 }
-html,body{height:100%;background:var(--honey);font-family:-apple-system,sans-serif;color:var(--text);font-size:16px;overscroll-behavior-y:none}
-body{padding-bottom:calc(140px + var(--safe-bot))}
+html{height:100%;background:var(--honey)}
+body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-serif;color:var(--text);font-size:16px;padding-bottom:calc(100px + var(--safe-bot))}
 
 /* ── TOP BAR ── */
 .topbar{
