@@ -148,6 +148,24 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
   cursor:pointer;padding:14px;border-radius:14px;font-size:1rem;
   font-weight:700;margin-top:6px}
 .btn-save:active{opacity:.8}
+
+/* ── PRINT BUTTON ── */
+.btn-print{background:var(--white);color:var(--amber);border:1.5px solid var(--gold);
+  cursor:pointer;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:600}
+
+/* ── PRINT ── */
+@media print{
+  .topbar,.bnav,.btn-add,.btn-print,.btn-sm,.search-wrap,.overlay{display:none!important}
+  body{padding:0;background:#fff}
+  .sec{display:none!important;padding:0}
+  .sec.on{display:block!important}
+  .clist,.citem{box-shadow:none;border-radius:0}
+  .stats{break-inside:avoid}
+  .citem{break-inside:avoid;border-bottom:1px solid #ccc}
+  h1,h2{color:#000}
+  .stat-val{color:#000}
+  .badge,.ok,.warn,.bad,.neu{border:1px solid #ccc;background:#fff!important;color:#000!important}
+}
 </style>
 </head>
 <body>
@@ -159,7 +177,10 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
 <!-- DASHBOARD -->
 <div id="s-dashboard" class="sec on">
   <div class="stats" id="dash-stats"></div>
-  <div class="sec-hdr"><h2>Situazione Arnie</h2></div>
+  <div class="sec-hdr">
+    <h2>Situazione Arnie</h2>
+    <button class="btn-print" onclick="stampa()">🖨️ Stampa</button>
+  </div>
   <div class="clist" id="dash-list"></div>
 </div>
 
@@ -167,7 +188,10 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
 <div id="s-arnie" class="sec">
   <div class="sec-hdr">
     <h2>Arnie</h2>
-    <button class="btn-add" onclick="openM('arnia')">+ Nuova</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-print" onclick="stampa()">🖨️</button>
+      <button class="btn-add" onclick="openM('arnia')">+ Nuova</button>
+    </div>
   </div>
   <div class="search-wrap"><input placeholder="Cerca…" oninput="rArnie(this.value)"></div>
   <div id="list-arnie"></div>
@@ -177,7 +201,10 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
 <div id="s-regine" class="sec">
   <div class="sec-hdr">
     <h2>Regine</h2>
-    <button class="btn-add" onclick="openM('regina')">+ Nuova</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-print" onclick="stampa()">🖨️</button>
+      <button class="btn-add" onclick="openM('regina')">+ Nuova</button>
+    </div>
   </div>
   <div class="search-wrap"><input placeholder="Cerca…" oninput="rRegine(this.value)"></div>
   <div id="list-regine"></div>
@@ -187,7 +214,10 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
 <div id="s-trattamenti" class="sec">
   <div class="sec-hdr">
     <h2>Trattamenti</h2>
-    <button class="btn-add" onclick="openM('trattamento')">+ Nuovo</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-print" onclick="stampa()">🖨️</button>
+      <button class="btn-add" onclick="openM('trattamento')">+ Nuovo</button>
+    </div>
   </div>
   <div class="search-wrap"><input placeholder="Cerca…" oninput="rTratt(this.value)"></div>
   <div id="list-trattamenti"></div>
@@ -197,7 +227,10 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
 <div id="s-produzione" class="sec">
   <div class="sec-hdr">
     <h2>Produzione</h2>
-    <button class="btn-add" onclick="openM('produzione')">+ Raccolta</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-print" onclick="stampa()">🖨️</button>
+      <button class="btn-add" onclick="openM('produzione')">+ Raccolta</button>
+    </div>
   </div>
   <div class="search-wrap"><input placeholder="Cerca…" oninput="rProd(this.value)"></div>
   <div id="list-produzione"></div>
@@ -207,7 +240,10 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
 <div id="s-ispezioni" class="sec">
   <div class="sec-hdr">
     <h2>Ispezioni</h2>
-    <button class="btn-add" onclick="openM('ispezione')">+ Nuova</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-print" onclick="stampa()">🖨️</button>
+      <button class="btn-add" onclick="openM('ispezione')">+ Nuova</button>
+    </div>
   </div>
   <div class="search-wrap"><input placeholder="Cerca…" oninput="rIsp(this.value)"></div>
   <div id="list-ispezioni"></div>
@@ -284,6 +320,7 @@ function load(){
   }
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
+function stampa(){window.print()}
 function backupData(){
   const d=new Date(),pad=n=>String(n).padStart(2,'0')
   const name=`apiario_backup_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`
