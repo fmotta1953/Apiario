@@ -149,6 +149,21 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
   font-weight:700;margin-top:6px}
 .btn-save:active{opacity:.8}
 
+/* ── INNER TABS ── */
+.itabs{display:flex;background:var(--white);border-radius:12px;padding:4px;
+  margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.itab{flex:1;border:none;background:none;cursor:pointer;padding:8px 4px;
+  border-radius:9px;font-size:.85rem;font-weight:600;color:var(--text2);transition:all .15s}
+.itab.on{background:var(--amber);color:var(--white)}
+
+/* ── TOTALE ROW ── */
+.total-row{background:var(--white);border-radius:14px;padding:14px 16px;
+  margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.08);
+  display:flex;justify-content:space-between;align-items:center}
+.total-row .lbl{font-size:.8rem;color:var(--text2);font-weight:600}
+.total-row .val{font-size:1.3rem;font-weight:700;color:var(--amber)}
+.total-row .val.r{color:var(--red)}.total-row .val.g{color:var(--green)}
+
 /* ── PRINT BUTTON ── */
 .btn-print{background:var(--white);color:var(--amber);border:1.5px solid var(--gold);
   cursor:pointer;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:600}
@@ -249,6 +264,38 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
   <div id="list-ispezioni"></div>
 </div>
 
+<!-- ECONOMIA -->
+<div id="s-economia" class="sec">
+  <div class="sec-hdr">
+    <h2>Economia</h2>
+    <button class="btn-print" onclick="stampa()">🖨️</button>
+  </div>
+  <div class="itabs">
+    <button class="itab on" id="etab-spese" onclick="eTab('spese')">💸 Spese</button>
+    <button class="itab" id="etab-vendite" onclick="eTab('vendite')">💰 Vendite</button>
+  </div>
+  <!-- SPESE -->
+  <div id="epanel-spese">
+    <div id="etot-spese" class="total-row"><span class="lbl">Totale spese</span><span class="val r" id="tot-spese-val">€ 0,00</span></div>
+    <div class="sec-hdr" style="margin-bottom:8px">
+      <span></span>
+      <button class="btn-add" onclick="openM('spesa')">+ Nuova</button>
+    </div>
+    <div class="search-wrap"><input placeholder="Cerca…" oninput="rSpese(this.value)"></div>
+    <div id="list-spese"></div>
+  </div>
+  <!-- VENDITE -->
+  <div id="epanel-vendite" style="display:none">
+    <div id="etot-vendite" class="total-row"><span class="lbl">Totale vendite</span><span class="val g" id="tot-vendite-val">€ 0,00</span></div>
+    <div class="sec-hdr" style="margin-bottom:8px">
+      <span></span>
+      <button class="btn-add" onclick="openM('vendita')">+ Nuova</button>
+    </div>
+    <div class="search-wrap"><input placeholder="Cerca…" oninput="rVendite(this.value)"></div>
+    <div id="list-vendite"></div>
+  </div>
+</div>
+
 </main>
 
 <!-- IMPOSTAZIONI -->
@@ -287,6 +334,8 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
     <span class="bico">🍯</span><span class="blbl">Produz.</span></button>
   <button id="nav-ispezioni" onclick="go('ispezioni')">
     <span class="bico">🔍</span><span class="blbl">Ispezioni</span></button>
+  <button id="nav-economia" onclick="go('economia')">
+    <span class="bico">💰</span><span class="blbl">Economia</span></button>
   <button id="nav-impostazioni" onclick="go('impostazioni')">
     <span class="bico">⚙️</span><span class="blbl">Impost.</span></button>
 </nav>
@@ -305,7 +354,7 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
 
 <script>
 const KEY='apiario_v2'
-var db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[]}
+var db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[],spese:[],vendite:[]}
 let eId=null,eType=null
 
 function load(){
@@ -314,10 +363,13 @@ function load(){
     const s=localStorage.getItem(KEY);if(s)db=JSON.parse(s)
   }catch(e){}
   if(!db.arnie||!db.arnie.length){
-    db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[]}
+    db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[],spese:[],vendite:[]}
     for(let i=1;i<=30;i++)db.arnie.push({id:aid(i),tipo:'Langstroth',posizione:'',dataInst:'',colore:'',telaini:'',stato:'Attiva',note:''})
     save()
   }
+  // retrocompatibilità: aggiungi array se mancanti
+  if(!db.spese)db.spese=[]
+  if(!db.vendite)db.vendite=[]
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
 function stampa(){window.print()}
@@ -364,6 +416,7 @@ function render(sec){
   else if(sec==='trattamenti')rTratt()
   else if(sec==='produzione')rProd()
   else if(sec==='ispezioni')rIsp()
+  else if(sec==='economia')rEconomia()
 }
 
 // DASHBOARD
@@ -546,6 +599,81 @@ function rIsp(q=''){
   document.getElementById('list-ispezioni').innerHTML=h||'<div class="empty">Nessuna ispezione</div>'
 }
 
+// ECONOMIA - tab switcher
+let eTabActive='spese'
+function eTab(t){
+  eTabActive=t
+  document.getElementById('etab-spese').classList.toggle('on',t==='spese')
+  document.getElementById('etab-vendite').classList.toggle('on',t==='vendite')
+  document.getElementById('epanel-spese').style.display=t==='spese'?'':'none'
+  document.getElementById('epanel-vendite').style.display=t==='vendite'?'':'none'
+}
+function rEconomia(){rSpese();rVendite()}
+
+// SPESE
+function rSpese(q=''){
+  const list=[...db.spese].sort((a,b)=>b.data>a.data?1:-1)
+    .filter(s=>!q||JSON.stringify(s).toLowerCase().includes(q.toLowerCase()))
+  const totale=db.spese.reduce((s,r)=>s+(parseFloat(r.importo)||0),0)
+  document.getElementById('tot-spese-val').textContent='€ '+totale.toFixed(2).replace('.',',')
+  let h=''
+  list.forEach(s=>{
+    const cb=s.categoria?bdg(s.categoria,'neu'):''
+    h+=`<div class="clist" style="margin-bottom:10px">
+      <div class="citem">
+        <div class="citem-left">
+          <div class="citem-title">${esc(s.descrizione)||'—'}</div>
+          <div class="citem-sub">${fmt(s.data)}${s.fornitore?' · '+esc(s.fornitore):''}</div>
+          <div class="citem-sub" style="margin-top:4px">${cb}</div>
+          ${s.note?`<div class="citem-sub" style="font-style:italic">${esc(s.note)}</div>`:''}
+        </div>
+        <div class="citem-right">
+          <div style="text-align:right;min-width:70px">
+            <div style="font-size:1.05rem;font-weight:700;color:var(--red)">€ ${parseFloat(s.importo||0).toFixed(2).replace('.',',')}</div>
+          </div>
+          <div class="citem-actions">
+            <button class="btn-sm" onclick="openM('spesa','${s.id}')">✏️</button>
+            <button class="btn-sm btn-del" onclick="del('spese','${s.id}','economia')">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>`
+  })
+  document.getElementById('list-spese').innerHTML=h||'<div class="empty">Nessuna spesa registrata</div>'
+}
+
+// VENDITE
+function rVendite(q=''){
+  const list=[...db.vendite].sort((a,b)=>b.data>a.data?1:-1)
+    .filter(v=>!q||JSON.stringify(v).toLowerCase().includes(q.toLowerCase()))
+  const totale=db.vendite.reduce((s,r)=>s+(parseFloat(r.importo)||0),0)
+  document.getElementById('tot-vendite-val').textContent='€ '+totale.toFixed(2).replace('.',',')
+  let h=''
+  list.forEach(v=>{
+    const pb=v.prodotto?bdg(v.prodotto,'ok'):''
+    h+=`<div class="clist" style="margin-bottom:10px">
+      <div class="citem">
+        <div class="citem-left">
+          <div class="citem-title">${esc(v.acquirente)||'—'}</div>
+          <div class="citem-sub">${fmt(v.data)}${v.quantita?' · '+esc(v.quantita):''}</div>
+          <div class="citem-sub" style="margin-top:4px">${pb}</div>
+          ${v.note?`<div class="citem-sub" style="font-style:italic">${esc(v.note)}</div>`:''}
+        </div>
+        <div class="citem-right">
+          <div style="text-align:right;min-width:70px">
+            <div style="font-size:1.05rem;font-weight:700;color:var(--green)">€ ${parseFloat(v.importo||0).toFixed(2).replace('.',',')}</div>
+          </div>
+          <div class="citem-actions">
+            <button class="btn-sm" onclick="openM('vendita','${v.id}')">✏️</button>
+            <button class="btn-sm btn-del" onclick="del('vendite','${v.id}','economia')">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>`
+  })
+  document.getElementById('list-vendite').innerHTML=h||'<div class="empty">Nessuna vendita registrata</div>'
+}
+
 // DELETE
 function del(coll,id,sec){
   if(!confirm('Eliminare?'))return
@@ -616,6 +744,20 @@ function buildF(type,d){
     fgrid(fg('Sciamatura',fs('sciamatura',d,['','No','Celle reali','Sciame emesso']))+fg('Forza (1-5)',fs('forza',d,['','1','2','3','4','5'])))+
     fgrid(fg('Varroa caduta/24h',fi('varroa',d,'number'))+fg('Operatore',fi('operatore',d)))+
     fg('Problemi Rilevati',ft('problemi',d))+fg('Interventi Eseguiti',ft('interventi',d)))
+
+  if(type==='spesa') return wrap(
+    fgrid(fg('Data',fi('data',d,'date'))+fg('Importo €',fi('importo',d,'number','0')))+
+    fg('Descrizione',fi('descrizione',d,'text','es. Acquisto arnia'))+
+    fg('Categoria',fs('categoria',d,['','Attrezzatura','Arnie / Nuclei','Regine','Medicinali / Trattamenti','Miele e vasetti','Trasporto','Formazione','Altro']))+
+    fg('Fornitore',fi('fornitore',d))+
+    fg('Note',ft('note',d)))
+
+  if(type==='vendita') return wrap(
+    fgrid(fg('Data',fi('data',d,'date'))+fg('Importo €',fi('importo',d,'number','0')))+
+    fg('Acquirente',fi('acquirente',d,'text','es. Mario Rossi'))+
+    fgrid(fg('Prodotto',fs('prodotto',d,['','Miele','Propoli','Cera','Sciame','Nucleo','Pappa reale','Polline','Altro']))+fg('Quantità',fi('quantita',d,'text','es. 3 kg')))+
+    fg('Note',ft('note',d)))
+
   return''
 }
 
@@ -623,8 +765,8 @@ function submitF(e,type){
   e.preventDefault()
   const fd=new FormData(e.target),data={}
   fd.forEach((v,k)=>data[k]=v)
-  const m={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni'}
-  const s={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni'}
+  const m={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni',spesa:'spese',vendita:'vendite'}
+  const s={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni',spesa:'economia',vendita:'economia'}
   const coll=m[type]
   if(eId){const i=db[coll].findIndex(r=>r.id===eId);if(i>=0){data.id=eId;db[coll][i]=data}}
   else{data.id=uid();db[coll].push(data)}
