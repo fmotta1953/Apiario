@@ -682,11 +682,18 @@ function del(coll,id,sec){
 
 // MODAL
 const aopts=()=>db.arnie.map(a=>`<option value="${esc(a.id)}">${esc(a.id)}</option>`).join('')
+function nextArniaId(){
+  const nums=db.arnie.map(a=>{const m=a.id.match(/(\d+)$/);return m?parseInt(m[1]):0})
+  const max=nums.length?Math.max(...nums):0
+  return aid(max+1)
+}
 function openM(type,id=null){
   eType=type;eId=id
   const d=id?getRec(type,id):{}
+  // Pre-compila l'id suggerito per le nuove arnie
+  if(type==='arnia'&&!id)d._suggestId=nextArniaId()
   document.getElementById('m-title').textContent=(id?'Modifica ':'Nuovo ')+
-    {arnia:'Arnia',regina:'Regina',trattamento:'Trattamento',produzione:'Raccolta',ispezione:'Ispezione'}[type]
+    ({arnia:'Arnia',regina:'Regina',trattamento:'Trattamento',produzione:'Raccolta',ispezione:'Ispezione',spesa:'Spesa',vendita:'Vendita'}[type]||type)
   document.getElementById('m-body').innerHTML=buildF(type,d)
   document.getElementById('overlay').classList.add('on')
 }
@@ -708,7 +715,7 @@ function buildF(type,d){
   const ao=aopts()
 
   if(type==='arnia') return wrap(
-    fgrid(fg('N° Arnia',fi('id',d,'text','Arnia 01'))+fg('Tipo',fs('tipo',d,['Langstroth','Dadant','Lusitana','Top-bar','Arnietta portasciami','Altro'])))+
+    fgrid(fg('N° Arnia',`<input type="text" name="id" value="${esc(d.id||d._suggestId||'')}" placeholder="es. Arnia 31">`)+fg('Tipo',fs('tipo',d,['Langstroth','Dadant','Lusitana','Top-bar','Arnietta portasciami','Altro'])))+
     fg('Posizione / Apiario',fi('posizione',d))+
     fgrid(fg('Data Installazione',fi('dataInst',d,'date'))+fg('N° Telaini',fi('telaini',d,'number')))+
     fgrid(fg('Colore Contrassegno',fi('colore',d))+fg('Stato',fs('stato',d,['Attiva','Inattiva','In osservazione','Sciamata','Morta'])))+
@@ -769,7 +776,7 @@ function submitF(e,type){
   const s={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni',spesa:'economia',vendita:'economia'}
   const coll=m[type]
   if(eId){const i=db[coll].findIndex(r=>r.id===eId);if(i>=0){data.id=eId;db[coll][i]=data}}
-  else{data.id=uid();db[coll].push(data)}
+  else{data.id=(type==='arnia'&&data.id)?data.id:uid();db[coll].push(data)}
   save();closeM();render(s[type])
 }
 
