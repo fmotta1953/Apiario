@@ -778,7 +778,18 @@ load();rDash()
 
 <script>
 if('serviceWorker' in navigator){
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'))
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Forza il controllo aggiornamenti ad ogni avvio
+      reg.update()
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing
+        sw.addEventListener('statechange', () => {
+          if(sw.state === 'activated') location.reload()
+        })
+      })
+    })
+  })
 }
 </script>
 </body>
