@@ -215,6 +215,28 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
 
 </main>
 
+<!-- IMPOSTAZIONI -->
+<div id="s-impostazioni" class="sec">
+  <div class="sec-hdr"><h2>Impostazioni</h2></div>
+  <div class="clist">
+    <div class="citem" style="flex-direction:column;align-items:flex-start;gap:6px">
+      <div class="citem-title">💾 Backup dati</div>
+      <div class="citem-sub">Scarica un file JSON con tutti i tuoi dati</div>
+      <button class="btn-save" style="margin-top:8px" onclick="backupData()">Esporta backup</button>
+    </div>
+  </div>
+  <div class="clist" style="margin-top:12px">
+    <div class="citem" style="flex-direction:column;align-items:flex-start;gap:6px">
+      <div class="citem-title">📂 Ripristino dati</div>
+      <div class="citem-sub">Carica un file di backup precedente. I dati attuali verranno sostituiti.</div>
+      <label class="btn-save" style="margin-top:8px;display:block;text-align:center;cursor:pointer">
+        Importa backup
+        <input type="file" accept=".json" style="display:none" onchange="restoreData(this)">
+      </label>
+    </div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <nav class="bnav">
   <button id="nav-dashboard" class="active" onclick="go('dashboard')">
@@ -229,6 +251,8 @@ body{padding-bottom:calc(80px + var(--safe-bot))}
     <span class="bico">🍯</span><span class="blbl">Produz.</span></button>
   <button id="nav-ispezioni" onclick="go('ispezioni')">
     <span class="bico">🔍</span><span class="blbl">Ispezioni</span></button>
+  <button id="nav-impostazioni" onclick="go('impostazioni')">
+    <span class="bico">⚙️</span><span class="blbl">Impost.</span></button>
 </nav>
 
 <!-- MODAL -->
@@ -260,6 +284,25 @@ function load(){
   }
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
+function backupData(){
+  const d=new Date(),pad=n=>String(n).padStart(2,'0')
+  const name=`apiario_backup_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'})
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()
+}
+function restoreData(input){
+  const file=input.files[0];if(!file)return
+  const r=new FileReader()
+  r.onload=e=>{
+    try{
+      const parsed=JSON.parse(e.target.result)
+      if(!parsed.arnie||!parsed.regine)throw new Error('File non valido')
+      if(!confirm('Sostituire tutti i dati attuali con il backup?'))return
+      db=parsed;save();location.reload()
+    }catch(err){alert('Errore: file non valido o corrotto')}
+  }
+  r.readAsText(file)
+}
 function aid(n){return 'Arnia '+String(n).padStart(2,'0')}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function fmt(d){if(!d)return'';const p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d}
