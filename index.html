@@ -20,7 +20,7 @@
   --safe-bot:env(safe-area-inset-bottom,0px);
 }
 html,body{height:100%;background:var(--honey);font-family:-apple-system,sans-serif;color:var(--text);font-size:16px}
-body{padding-bottom:calc(56px + var(--safe-bot))}
+body{padding-bottom:calc(80px + var(--safe-bot))}
 
 /* ── TOP BAR ── */
 .topbar{
@@ -500,7 +500,7 @@ function buildF(type,d){
   const ao=aopts()
 
   if(type==='arnia') return wrap(
-    fgrid(fg('N° Arnia',fi('id',d,'text','Arnia 01'))+fg('Tipo',fs('tipo',d,['Langstroth','Dadant','Lusitana','Top-bar','Altro'])))+
+    fgrid(fg('N° Arnia',fi('id',d,'text','Arnia 01'))+fg('Tipo',fs('tipo',d,['Langstroth','Dadant','Lusitana','Top-bar','Arnietta portasciami','Altro'])))+
     fg('Posizione / Apiario',fi('posizione',d))+
     fgrid(fg('Data Installazione',fi('dataInst',d,'date'))+fg('N° Telaini',fi('telaini',d,'number')))+
     fgrid(fg('Colore Contrassegno',fi('colore',d))+fg('Stato',fs('stato',d,['Attiva','Inattiva','In osservazione','Sciamata','Morta'])))+
@@ -508,7 +508,7 @@ function buildF(type,d){
 
   if(type==='regina') return wrap(
     fgrid(fg('Arnia',`<select name="arniaId">${ao}</select>`)+fg('Anno Nascita',fi('annoNascita',d,'number','2024')))+
-    fgrid(fg('Anno Introduzione',fi('annoIntro',d,'number','2024'))+fg('Razza',fs('razza',d,['','Ligustica','Carnica','Buckfast','Locale','Ibrido','Altro'])))+
+    fgrid(fg('Anno Introduzione',fi('annoIntro',d,'number','2024'))+fg('Razza',fs('razza',d,['','Ligustica','Carnica','Buckfast','Locale','Ape nera F0','Ape nera F1','Ibrido','Altro'])))+
     fgrid(fg('Colore Marcatura',fs('colore',d,['','Bianco','Giallo','Rosso','Verde','Blu']))+fg('Madre (arnia)',fi('madre',d,'text','facoltativo')))+
     fgrid(fg('Data Sostituzione',fi('dataSost',d,'date'))+fg('Motivo',fi('motivo',d)))+
     fg('Note',ft('note',d)))
