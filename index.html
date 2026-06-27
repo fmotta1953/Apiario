@@ -727,9 +727,10 @@ function del(coll,id,sec){
 // MODAL
 const aopts=()=>db.arnie.map(a=>`<option value="${esc(a.id)}">${esc(a.id)}</option>`).join('')
 function nextArniaId(){
-  const nums=db.arnie.map(a=>{const m=a.id.match(/(\d+)$/);return m?parseInt(m[1]):0})
-  const max=nums.length?Math.max(...nums):0
-  return aid(max+1)
+  const nums=new Set(db.arnie.map(a=>{const m=a.id.match(/(\d+)$/);return m?parseInt(m[1]):0}))
+  let n=1
+  while(nums.has(n))n++
+  return aid(n)
 }
 function openM(type,id=null){
   eType=type;eId=id
