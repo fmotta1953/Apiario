@@ -20,7 +20,7 @@
   --safe-bot:env(safe-area-inset-bottom,0px);
 }
 html,body{height:100%;background:var(--honey);font-family:-apple-system,sans-serif;color:var(--text);font-size:16px}
-body{padding-bottom:calc(120px + var(--safe-bot))}
+body{padding-bottom:0}
 
 /* ── TOP BAR ── */
 .topbar{
@@ -295,6 +295,9 @@ body{padding-bottom:calc(120px + var(--safe-bot))}
     <div id="list-vendite"></div>
   </div>
 </div>
+
+<!-- spacer per iOS bottom nav -->
+<div style="height:140px;flex-shrink:0"></div>
 
 </main>
 
