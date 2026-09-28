@@ -235,10 +235,50 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 .btn-print{background:var(--white);color:var(--amber);border:1.5px solid var(--gold);
   cursor:pointer;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:600}
 
+/* ── SCHERMI LARGHI (iPad, Mac): menu laterale, griglie, finestre centrate ── */
+@media (min-width:820px){
+  body{padding-bottom:24px;padding-left:calc(92px + env(safe-area-inset-left,0px))}
+  .bnav{top:0;bottom:0;right:auto;width:calc(92px + env(safe-area-inset-left,0px));flex-direction:column;justify-content:flex-start;
+    gap:4px;border-top:none;border-right:1px solid var(--sep);padding:calc(64px + var(--safe-top)) 0 0 env(safe-area-inset-left,0px)}
+  .bnav button{flex:0 0 auto;min-height:72px;border-radius:14px;margin:0 8px}
+  .bnav button.active{background:var(--honey-d)}
+  main,#s-impostazioni{max-width:1240px;margin:0 auto}
+  #s-impostazioni{padding-left:28px;padding-right:28px}
+  .sec{padding:24px 28px 12px}
+  .stats{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px;align-items:start}
+  .lgrid>.clist{margin-bottom:0!important}
+  .lgrid>:not(.clist){grid-column:1/-1}
+  #dash-list{display:grid;grid-template-columns:1fr 1fr}
+  #dash-list .dash-item:nth-last-child(2):nth-child(odd){border-bottom:none}
+  .menu-grid{grid-template-columns:repeat(4,1fr)}
+  .det-b{margin-top:8px}
+  .det-a .stats{grid-template-columns:1fr 1fr}
+  #stat-body{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+  #stat-body .chart{margin:0}
+  #s-impostazioni .clist{max-width:720px}
+  .overlay{align-items:center;justify-content:center}
+  .modal{width:min(640px,92vw);border-radius:20px;max-height:88vh;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .modal-bar{display:none}
+  .modal-body{padding-bottom:20px}
+}
+/* scheda arnia su due colonne (dati | storico) solo se c'è spazio: iPad orizzontale, Mac */
+@media (min-width:1100px){
+  .qact{grid-template-columns:repeat(6,1fr)}
+  .det-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;align-items:start}
+  .det-b{margin-top:0}
+}
+@media (hover:hover){
+  .citem:hover,.dash-item.tap:hover{background:var(--honey)}
+  .bnav button:hover{color:var(--amber)}
+  .qact button:hover,.menu-grid button:hover{background:var(--honey-d)}
+}
+
 /* ── PRINT ── */
 @media print{
   .topbar,.bnav,.btn-add,.btn-print,.btn-sm,.search-wrap,.overlay,.btn-back,.qact,.chev,#dash-todo{display:none!important}
-  body{padding:0;background:#fff}
+  body{padding:0!important;background:#fff}
+  .lgrid,#dash-list,.det-grid,#stat-body{display:block!important}
   .sec{display:none!important;padding:0}
   .sec.on{display:block!important}
   .clist,.citem{box-shadow:none;border-radius:0}
@@ -259,7 +299,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 
 <div class="topbar" style="display:flex;align-items:center;justify-content:space-between">
   <h1>🐝 Gestione Apiario</h1>
-  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v16</span>
+  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v17</span>
 </div>
 
 <main>
@@ -285,7 +325,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
     </div>
   </div>
   <div class="search-wrap"><input placeholder="Cerca…" oninput="rArnie(this.value)"></div>
-  <div id="list-arnie"></div>
+  <div id="list-arnie" class="lgrid"></div>
 </div>
 
 <!-- REGINE -->
@@ -298,7 +338,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
     </div>
   </div>
   <div class="search-wrap"><input placeholder="Cerca…" oninput="rRegine(this.value)"></div>
-  <div id="list-regine"></div>
+  <div id="list-regine" class="lgrid"></div>
 </div>
 
 <!-- TRATTAMENTI -->
@@ -311,7 +351,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
     </div>
   </div>
   <div class="search-wrap"><input placeholder="Cerca…" oninput="rTratt(this.value)"></div>
-  <div id="list-trattamenti"></div>
+  <div id="list-trattamenti" class="lgrid"></div>
 </div>
 
 <!-- PRODUZIONE -->
@@ -324,7 +364,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
     </div>
   </div>
   <div class="search-wrap"><input placeholder="Cerca…" oninput="rProd(this.value)"></div>
-  <div id="list-produzione"></div>
+  <div id="list-produzione" class="lgrid"></div>
 </div>
 
 <!-- ISPEZIONI -->
@@ -337,7 +377,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
     </div>
   </div>
   <div class="search-wrap"><input placeholder="Cerca…" oninput="rIsp(this.value)"></div>
-  <div id="list-ispezioni"></div>
+  <div id="list-ispezioni" class="lgrid"></div>
 </div>
 
 <!-- ECONOMIA -->
@@ -358,7 +398,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
       <button class="btn-add" onclick="openM('spesa')">+ Nuova</button>
     </div>
     <div class="search-wrap"><input placeholder="Cerca…" oninput="rSpese(this.value)"></div>
-    <div id="list-spese"></div>
+    <div id="list-spese" class="lgrid"></div>
   </div>
   <!-- VENDITE -->
   <div id="epanel-vendite" style="display:none">
@@ -368,7 +408,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
       <button class="btn-add" onclick="openM('vendita')">+ Nuova</button>
     </div>
     <div class="search-wrap"><input placeholder="Cerca…" oninput="rVendite(this.value)"></div>
-    <div id="list-vendite"></div>
+    <div id="list-vendite" class="lgrid"></div>
   </div>
 </div>
 
@@ -381,7 +421,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
       <button class="btn-add" onclick="openM('nutrizione')">+ Nuova</button>
     </div>
   </div>
-  <div id="list-nutrizione"></div>
+  <div id="list-nutrizione" class="lgrid"></div>
 </div>
 
 <!-- MELARI -->
@@ -393,7 +433,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
       <button class="btn-add" onclick="openM('melario')">+ Posa</button>
     </div>
   </div>
-  <div id="list-melari"></div>
+  <div id="list-melari" class="lgrid"></div>
 </div>
 
 <!-- NOMADISMO -->
@@ -405,7 +445,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
       <button class="btn-add" onclick="openM('spostamento')">+ Spostamento</button>
     </div>
   </div>
-  <div id="list-spostamenti"></div>
+  <div id="list-spostamenti" class="lgrid"></div>
 </div>
 
 <!-- STATISTICHE -->
@@ -852,7 +892,7 @@ function rArnia(){
   const figlie=db.arnie.filter(x=>x.origine===a.id)
   const mOpen=db.melari.filter(m=>m.arniaId===a.id&&m.dataPosa&&!m.dataTolta)
 
-  let h=`<div class="clist"><div class="citem" style="cursor:default;align-items:flex-start">
+  let h=`<div class="det-grid"><div class="det-a"><div class="clist"><div class="citem" style="cursor:default;align-items:flex-start">
     <div class="citem-left">
       <div class="citem-title" style="font-size:1.25rem">${esc(a.id)}</div>
       ${sub?`<div class="citem-sub">${esc(sub)}</div>`:''}
@@ -892,14 +932,14 @@ function rArnia(){
       <div class="tl-ico" style="opacity:.4">👑</div>
       <div class="citem-left"><div class="citem-sub tl-wrap">${esc(qline(r))}${r.motivo?' — '+esc(r.motivo):''}</div></div>
       <div class="citem-right">${bdg('Precedente','neu')}</div></div>`).join('')}
-  </div>
-  <div class="sec-hdr"><h2>Storico (${ev.length})</h2></div>`
+  </div></div>
+  <div class="det-b"><div class="sec-hdr"><h2>Storico (${ev.length})</h2></div>`
 
-  if(!ev.length){el.innerHTML=h+'<div class="empty">Nessun evento registrato</div>';return}
-  h+='<div class="clist">'+ev.map(e=>`<div class="citem" style="align-items:flex-start" onclick="openM('${e.t}',${jsq(e.r.id)})">
+  h+=ev.length?'<div class="clist">'+ev.map(e=>`<div class="citem" style="align-items:flex-start" onclick="openM('${e.t}',${jsq(e.r.id)})">
       <div class="tl-ico">${e.ico}</div>
       <div class="citem-left"><div class="citem-title">${e.title}</div>${e.body}</div></div>`).join('')+'</div>'
-  el.innerHTML=h
+    :'<div class="empty">Nessun evento registrato</div>'
+  el.innerHTML=h+'</div></div>'
 }
 
 // Riga di elenco con modifica/elimina (sezioni Nutrizione, Melari, Nomadismo)
