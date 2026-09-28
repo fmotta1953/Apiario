@@ -17,6 +17,9 @@ sed -i '' "s/>v[0-9]*<\/span>/>v${APPNEXT}<\/span>/" index.html
 
 echo "SW: v${SWVER}→v${SWNEXT} | App: v${APPVER}→v${APPNEXT}"
 
+# Sincronizza il bundle Swift (Apiario/apiario.html)
+python3 sync-swift.py
+
 git add -A
 git commit -m "Deploy app-v${APPNEXT}"
 git push

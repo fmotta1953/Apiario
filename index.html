@@ -164,13 +164,37 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 .total-row .val{font-size:1.3rem;font-weight:700;color:var(--amber)}
 .total-row .val.r{color:var(--red)}.total-row .val.g{color:var(--green)}
 
+/* ── SCHEDA ARNIA ── */
+.btn-back{background:none;border:none;cursor:pointer;color:var(--amber);
+  font-size:1rem;font-weight:600;padding:6px 0}
+.qact{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.qact button{background:var(--white);border:1.5px solid var(--gold);color:var(--amber);
+  border-radius:14px;padding:12px 4px;font-size:.85rem;font-weight:600;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:4px}
+.qact button span{font-size:1.4rem;line-height:1}
+.qact button:active{background:var(--honey-d)}
+.tl-ico{font-size:1.3rem;width:28px;text-align:center;flex-shrink:0;align-self:flex-start}
+.tl-wrap{white-space:normal}
+.dash-item.tap{cursor:pointer}.dash-item.tap:active{background:var(--honey)}
+.chev{color:var(--sep);font-size:1.2rem;flex-shrink:0}
+
+/* ── DA FARE ── */
+.todo .citem{align-items:flex-start;cursor:default}
+.todo-r{border-left:4px solid var(--red)}.todo-w{border-left:4px solid var(--gold)}.todo-i{border-left:4px solid var(--blue)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chips .badge{cursor:pointer}
+.todo-ok{font-size:.85rem;color:var(--green);margin-bottom:16px}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:6px 0}
+.set-row input{width:80px;padding:8px 10px;border:1.5px solid var(--sep);border-radius:10px;
+  font-size:.95rem;background:var(--honey);text-align:right}
+
 /* ── PRINT BUTTON ── */
 .btn-print{background:var(--white);color:var(--amber);border:1.5px solid var(--gold);
   cursor:pointer;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:600}
 
 /* ── PRINT ── */
 @media print{
-  .topbar,.bnav,.btn-add,.btn-print,.btn-sm,.search-wrap,.overlay{display:none!important}
+  .topbar,.bnav,.btn-add,.btn-print,.btn-sm,.search-wrap,.overlay,.btn-back,.qact,.chev,#dash-todo{display:none!important}
   body{padding:0;background:#fff}
   .sec{display:none!important;padding:0}
   .sec.on{display:block!important}
@@ -187,13 +211,14 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 
 <div class="topbar" style="display:flex;align-items:center;justify-content:space-between">
   <h1>🐝 Gestione Apiario</h1>
-  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v12</span>
+  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v13</span>
 </div>
 
 <main>
 
 <!-- DASHBOARD -->
 <div id="s-dashboard" class="sec on">
+  <div id="dash-todo"></div>
   <div class="stats" id="dash-stats"></div>
   <div class="sec-hdr">
     <h2>Situazione Arnie</h2>
@@ -299,6 +324,15 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   </div>
 </div>
 
+<!-- SCHEDA ARNIA (non in nav: si apre toccando un'arnia) -->
+<div id="s-arnia" class="sec">
+  <div class="sec-hdr">
+    <button class="btn-back" onclick="goBack()">‹ Indietro</button>
+    <button class="btn-print" onclick="stampa()">🖨️</button>
+  </div>
+  <div id="arnia-det"></div>
+</div>
+
 </main>
 
 <!-- IMPOSTAZIONI -->
@@ -319,6 +353,16 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
         Importa backup
         <input type="file" accept=".json" style="display:none" onchange="restoreData(this)">
       </label>
+    </div>
+  </div>
+  <div class="clist" style="margin-top:12px">
+    <div class="citem" style="flex-direction:column;align-items:flex-start;gap:6px;cursor:default">
+      <div class="citem-title">🔔 Promemoria</div>
+      <div class="set-row"><span class="citem-sub">Ispezionare ogni (giorni, 0 = mai)</span>
+        <input type="number" inputmode="numeric" min="0" id="set-ispGiorni" onchange="setOpt('ispGiorni',this.value)"></div>
+      <div class="set-row"><span class="citem-sub">Soglia allarme varroa (caduta/24h)</span>
+        <input type="number" inputmode="decimal" min="0" id="set-varroaSoglia" onchange="setOpt('varroaSoglia',this.value)"></div>
+      <button class="btn-sm" style="margin-top:4px" onclick="resetDismissed()">Mostra di nuovo i promemoria nascosti</button>
     </div>
   </div>
   <div class="clist" style="margin-top:12px" id="autobk-panel">
@@ -366,20 +410,27 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 const KEY='apiario_v2'
 var db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[],spese:[],vendite:[]}
 let eId=null,eType=null
+const DEF_SETTINGS={ispGiorni:14,varroaSoglia:10,dismissed:{}}
+// tipo record → collezione in db
+const COLL={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni',spesa:'spese',vendita:'vendite'}
 
 function load(){
+  let found=false
   try{
-    if(window.__INIT_DATA__){db=window.__INIT_DATA__;return}
-    const s=localStorage.getItem(KEY);if(s)db=JSON.parse(s)
+    if(window.__INIT_DATA__){db=window.__INIT_DATA__;found=true}
+    else{const s=localStorage.getItem(KEY);if(s){db=JSON.parse(s);found=true}}
   }catch(e){}
-  if(!db.arnie||!db.arnie.length){
+  // Crea le 30 arnie di default solo al primo avvio (mai se esistono dati salvati,
+  // anche con zero arnie: altrimenti si cancellerebbe tutto il resto)
+  if(!found||!db||typeof db!=='object'){
     db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[],spese:[],vendite:[]}
     for(let i=1;i<=30;i++)db.arnie.push({id:aid(i),tipo:'Langstroth',posizione:'',dataInst:'',colore:'',telaini:'',stato:'Attiva',note:''})
     save()
   }
   // retrocompatibilità: aggiungi array se mancanti
-  if(!db.spese)db.spese=[]
-  if(!db.vendite)db.vendite=[]
+  Object.values(COLL).forEach(c=>{if(!Array.isArray(db[c]))db[c]=[]})
+  db.settings={...DEF_SETTINGS,...(db.settings||{})}
+  if(!db.settings.dismissed||typeof db.settings.dismissed!=='object')db.settings.dismissed={}
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
 
@@ -407,12 +458,16 @@ function restoreAutoBackup(ts){
 }
 // Salva quando l'app va in background
 document.addEventListener('visibilitychange',()=>{if(document.hidden)autoBackup()})
+// stampa() ed exportFile() vengono sostituite dal bridge nativo nell'app iOS
 function stampa(){window.print()}
+function exportFile(name,text,mime){
+  const blob=new Blob([text],{type:mime})
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()
+}
 function backupData(){
   const d=new Date(),pad=n=>String(n).padStart(2,'0')
   const name=`apiario_backup_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`
-  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'})
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()
+  exportFile(name,JSON.stringify(db,null,2),'application/json')
 }
 function restoreData(input){
   const file=input.files[0];if(!file)return
@@ -430,20 +485,38 @@ function restoreData(input){
 function aid(n){return 'Arnia '+String(n).padStart(2,'0')}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function fmt(d){if(!d)return'';const p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d}
-function esc(s){return s!=null?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):''}
+function esc(s){return s!=null?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'):''}
+// Stringa come argomento JS dentro un attributo onclick="…" (sicura con apostrofi e virgolette)
+function jsq(s){return esc(JSON.stringify(String(s)))}
+// Regina attuale di un'arnia: introdotta più di recente (a parità, l'ultima inserita)
+function curQueen(arniaId){
+  let best=null
+  db.regine.forEach(r=>{if(r.arniaId===arniaId&&(!best||(parseInt(r.annoIntro)||0)>=(parseInt(best.annoIntro)||0)))best=r})
+  return best
+}
 function bdg(t,c){return`<span class="badge ${c}">${esc(t)}</span>`}
 function qst(yr){if(!yr)return bdg('N/D','neu');return(new Date().getFullYear()-parseInt(yr))>=3?bdg('⚠️ Da rinnovare','warn'):bdg('✅ Valida','ok')}
 function lastOf(arr,af,av,df){return[...arr].filter(r=>r[af]===av).sort((a,b)=>b[df]>a[df]?1:-1)[0]||null}
 function suOf(arr,af,av,kf){return arr.filter(r=>r[af]===av).reduce((s,r)=>s+(parseFloat(r[kf])||0),0)}
 
 // NAV
+let curSec='dashboard',prevSec='dashboard',prevScroll=0,detId=null
 function go(sec){
+  curSec=sec
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'))
   document.querySelectorAll('.bnav button').forEach(b=>b.classList.remove('active'))
   document.getElementById('s-'+sec).classList.add('on')
-  document.getElementById('nav-'+sec).classList.add('active')
+  // nella scheda arnia resta evidenziata la sezione da cui si è arrivati
+  document.getElementById('nav-'+(sec==='arnia'?prevSec:sec)).classList.add('active')
   render(sec); window.scrollTo(0,0)
 }
+function openArnia(id){
+  if(curSec!=='arnia'){prevSec=curSec;prevScroll=window.scrollY||0}
+  detId=id;go('arnia')
+}
+function goBack(){go(prevSec);window.scrollTo(0,prevScroll)}
+function sbdg(a){return a.stato==='Attiva'?bdg('Attiva','ok'):a.stato==='Morta'?bdg('Morta','bad'):bdg(a.stato||'N/D','neu')}
+function today(){const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)}
 function render(sec){
   if(sec==='dashboard')rDash()
   else if(sec==='arnie')rArnie()
@@ -453,8 +526,101 @@ function render(sec){
   else if(sec==='ispezioni')rIsp()
   else if(sec==='economia')rEconomia()
   else if(sec==='impostazioni')rImpostazioni()
+  else if(sec==='arnia')rArnia()
 }
+
+// SCHEDA ARNIA
+function rArnia(){
+  const el=document.getElementById('arnia-det')
+  const a=db.arnie.find(x=>x.id===detId)
+  if(!a){el.innerHTML='<div class="empty">Arnia non trovata</div>';return}
+  const y=String(new Date().getFullYear())
+  const q=curQueen(a.id)
+  const oldQ=db.regine.filter(r=>r.arniaId===a.id&&r!==q).sort((x,z)=>(parseInt(z.annoIntro)||0)-(parseInt(x.annoIntro)||0))
+  const prod=db.produzione.filter(p=>p.arniaId===a.id)
+  const kgOf=l=>l.reduce((s,p)=>s+(parseFloat(p.kg)||0),0)
+  const kgY=kgOf(prod.filter(p=>p.data&&p.data.startsWith(y))),kgT=kgOf(prod)
+  const isp=db.ispezioni.filter(i=>i.arniaId===a.id)
+  const li=lastOf(db.ispezioni,'arniaId',a.id,'data')
+  const gg=li&&li.data?Math.floor((new Date(today())-new Date(li.data))/864e5):null
+  const lv=[...isp].filter(i=>i.varroa!==''&&i.varroa!=null).sort((x,z)=>z.data>x.data?1:-1)[0]
+  // i trattamenti su tutto l'apiario valgono anche per questa arnia
+  const tr=db.trattamenti.filter(t=>t.arniaId===a.id||!t.arniaId)
+  const ev=[
+    ...isp.map(r=>({d:r.data,t:'ispezione',r})),
+    ...tr.map(r=>({d:r.dataInizio,t:'trattamento',r})),
+    ...prod.map(r=>({d:r.data,t:'produzione',r}))
+  ].sort((x,z)=>(z.d||'')>(x.d||'')?1:(z.d||'')<(x.d||'')?-1:0)
+  const aj=jsq(a.id)
+  const sub=[a.tipo,a.posizione,a.telaini?a.telaini+' telaini':''].filter(Boolean).join(' · ')
+
+  let h=`<div class="clist"><div class="citem" style="cursor:default;align-items:flex-start">
+    <div class="citem-left">
+      <div class="citem-title" style="font-size:1.25rem">${esc(a.id)}</div>
+      ${sub?`<div class="citem-sub">${esc(sub)}</div>`:''}
+      ${a.dataInst?`<div class="citem-sub">Installata il ${fmt(a.dataInst)}</div>`:''}
+      ${a.colore?`<div class="citem-sub">Contrassegno: ${esc(a.colore)}</div>`:''}
+      ${a.note?`<div class="citem-sub tl-wrap" style="font-style:italic">${esc(a.note)}</div>`:''}
+    </div>
+    <div class="citem-right">${sbdg(a)}<button class="btn-sm" onclick="openM('arnia',${aj})">✏️</button></div>
+  </div></div>
+  <div class="qact">
+    <button onclick="openM('ispezione',null,{arniaId:${aj}})"><span>🔍</span>Ispezione</button>
+    <button onclick="openM('trattamento',null,{arniaId:${aj}})"><span>💊</span>Trattamento</button>
+    <button onclick="openM('produzione',null,{arniaId:${aj}})"><span>🍯</span>Raccolta</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-val">${kgY.toFixed(1)}</div><div class="stat-lbl">kg miele ${y}</div></div>
+    <div class="stat"><div class="stat-val">${kgT.toFixed(1)}</div><div class="stat-lbl">kg totali</div></div>
+    <div class="stat b"><div class="stat-val">${gg==null?'—':gg}</div><div class="stat-lbl">${gg==null?'Nessuna ispezione':'giorni dall\'ultima ispezione'}</div></div>
+    <div class="stat r"><div class="stat-val">${lv?esc(lv.varroa):'—'}</div><div class="stat-lbl">Varroa/24h${lv?' ('+fmt(lv.data)+')':''}</div></div>
+  </div>
+  <div class="sec-hdr"><h2>Regina</h2><button class="btn-add" onclick="openM('regina',null,{arniaId:${aj},annoIntro:'${y}'})">+ Nuova</button></div>`
+
+  const qline=r=>[r.annoNascita?'Nata '+r.annoNascita:'',r.annoIntro?'Introdotta '+r.annoIntro:'',r.razza,r.colore?'Marcatura '+r.colore:''].filter(Boolean).join(' · ')
+  h+=`<div class="clist">${q?`<div class="citem" onclick="openM('regina',${jsq(q.id)})">
+      <div class="tl-ico">👑</div>
+      <div class="citem-left"><div class="citem-sub tl-wrap" style="color:var(--text)">${esc(qline(q))||'Dati non inseriti'}</div>
+        ${q.madre?`<div class="citem-sub">Madre: ${esc(q.madre)}</div>`:''}</div>
+      <div class="citem-right">${qst(q.annoIntro)}</div></div>`:'<div class="empty" style="padding:20px">Nessuna regina registrata</div>'}
+    ${oldQ.map(r=>`<div class="citem" onclick="openM('regina',${jsq(r.id)})">
+      <div class="tl-ico" style="opacity:.4">👑</div>
+      <div class="citem-left"><div class="citem-sub tl-wrap">${esc(qline(r))}${r.motivo?' — '+esc(r.motivo):''}</div></div>
+      <div class="citem-right">${bdg('Precedente','neu')}</div></div>`).join('')}
+  </div>
+  <div class="sec-hdr"><h2>Storico (${ev.length})</h2></div>`
+
+  if(!ev.length){el.innerHTML=h+'<div class="empty">Nessun evento registrato</div>';return}
+  h+='<div class="clist">'+ev.map(({t,r})=>{
+    let ico,title,body=''
+    if(t==='ispezione'){
+      ico='🔍';title=`Ispezione · ${fmt(r.data)}`
+      const fz=r.forza?bdg('Forza '+r.forza,parseInt(r.forza)>=4?'ok':parseInt(r.forza)<=2?'bad':'neu'):''
+      const rg=r.regina?bdg('Regina: '+r.regina,r.regina==='Sì'?'ok':'bad'):''
+      const vr=r.varroa?bdg('Varroa: '+r.varroa+'/24h','warn'):''
+      body=(rg||fz||vr?`<div class="citem-sub" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${rg}${fz}${vr}</div>`:'')+
+        (r.problemi?`<div class="citem-sub tl-wrap">⚠️ ${esc(r.problemi)}</div>`:'')+
+        (r.interventi?`<div class="citem-sub tl-wrap">✅ ${esc(r.interventi)}</div>`:'')
+    }else if(t==='trattamento'){
+      ico='💊';title=`${esc(r.prodotto)||'Trattamento'} · ${fmt(r.dataInizio)}${r.dataFine?' → '+fmt(r.dataFine):''}`
+      body=`<div class="citem-sub">${[r.parassita,r.dose,!r.arniaId?'Tutto l\'apiario':''].filter(Boolean).map(esc).join(' · ')}</div>`
+    }else{
+      ico='🍯';title=`${r.kg?esc(r.kg)+' kg ':''}${esc(r.tipoMiele)||'Raccolta'} · ${fmt(r.data)}`
+      body=`<div class="citem-sub">${[r.qualita,r.melari?r.melari+' melari':'',r.umidita?'Umidità '+r.umidita+'%':'',r.lotto?'Lotto '+r.lotto:''].filter(Boolean).map(esc).join(' · ')}</div>`
+    }
+    return`<div class="citem" style="align-items:flex-start" onclick="openM('${t}',${jsq(r.id)})">
+      <div class="tl-ico">${ico}</div>
+      <div class="citem-left"><div class="citem-title">${title}</div>${body}</div></div>`
+  }).join('')+'</div>'
+  el.innerHTML=h
+}
+function setOpt(k,v){
+  const n=parseFloat(String(v).replace(',','.'))
+  db.settings[k]=isNaN(n)||n<0?DEF_SETTINGS[k]:n;save();rImpostazioni()
+}
+function resetDismissed(){db.settings.dismissed={};save();alert('Promemoria ripristinati')}
 function rImpostazioni(){
+  ;['ispGiorni','varroaSoglia'].forEach(k=>{const i=document.getElementById('set-'+k);if(i)i.value=db.settings[k]})
   const bks=getAutoBackups()
   const el=document.getElementById('autobk-list')
   if(!el)return
@@ -467,12 +633,90 @@ function rImpostazioni(){
 }
 
 // DASHBOARD
+// DA FARE: promemoria calcolati dai dati (niente da inserire a mano)
+function addDays(iso,n){const d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
+function daysBetween(a,b){return Math.round((new Date(b+'T00:00:00Z')-new Date(a+'T00:00:00Z'))/864e5)}
+function dismiss(key){db.settings.dismissed[key]=1;save();rDash()}
+function todoItems(){
+  const T=today(),y=parseInt(T.slice(0,4)),md=T.slice(5),st=db.settings,out=[]
+  const hives=db.arnie.filter(a=>a.stato!=='Morta'&&a.stato!=='Inattiva')
+  const push=(lv,ico,title,sub,opts={})=>{if(!(opts.key&&st.dismissed[opts.key]))out.push({lv,ico,title,sub,...opts})}
+
+  // regina assente all'ultima ispezione
+  const orf=hives.filter(a=>{const li=lastOf(db.ispezioni,'arniaId',a.id,'data');return li&&li.regina==='No'})
+  if(orf.length)push('r','👑','Arnie senza regina',"All'ultima ispezione la regina non c'era",{hives:orf.map(a=>({id:a.id}))})
+
+  // varroa sopra soglia nell'ultima conta (degli ultimi 30 giorni)
+  const vh=[]
+  hives.forEach(a=>{
+    const lv=db.ispezioni.filter(i=>i.arniaId===a.id&&i.data&&i.varroa!==''&&i.varroa!=null).sort((x,z)=>z.data>x.data?1:-1)[0]
+    if(lv&&daysBetween(lv.data,T)<=30&&parseFloat(lv.varroa)>=st.varroaSoglia)vh.push({id:a.id,lbl:lv.varroa+'/24h'})
+  })
+  if(vh.length)push('r','🦠','Varroa sopra soglia',`Caduta ≥ ${st.varroaSoglia}/24h nell'ultima conta`,{hives:vh})
+
+  // trattamenti: fine imminente, appena finiti, in corso
+  db.trattamenti.forEach(t=>{
+    if(!t.dataFine)return
+    const dove=t.arniaId||"Tutto l'apiario",nome=t.prodotto||'Trattamento'
+    const g=daysBetween(T,t.dataFine)
+    if(g<0&&g>=-7)push('w','💊',`Fine trattamento: ${nome}`,`Terminato il ${fmt(t.dataFine)} · ${dove} — rimuovi i presidi e verifica l'efficacia`,{edit:['trattamento',t.id],key:'tfine-'+t.id})
+    else if(g>=0&&g<=3)push('w','💊',`${nome}: fine ${g===0?'oggi':g===1?'domani':'tra '+g+' giorni'}`,`${fmt(t.dataFine)} · ${dove}`,{edit:['trattamento',t.id]})
+    else if(g>3&&t.dataInizio&&t.dataInizio<=T)push('i','💊',`${nome} in corso`,`Fino al ${fmt(t.dataFine)} · ${dove}`,{edit:['trattamento',t.id]})
+  })
+
+  // ispezioni scadute
+  if(st.ispGiorni>0){
+    const late=hives.map(a=>{const li=lastOf(db.ispezioni,'arniaId',a.id,'data');return{id:a.id,g:li&&li.data?daysBetween(li.data,T):Infinity}})
+      .filter(x=>x.g>st.ispGiorni).sort((x,z)=>z.g-x.g)
+    if(late.length)push('w','🔍',`${late.length} ${late.length===1?'arnia da ispezionare':'arnie da ispezionare'}`,`Ultima ispezione oltre ${st.ispGiorni} giorni fa`,
+      {hives:late.map(x=>({id:x.id,lbl:x.g===Infinity?'mai':x.g+' gg'}))})
+  }
+
+  // trattamenti stagionali contro varroa (estivo dopo i raccolti, invernale in blocco di covata)
+  const trFrom=d=>db.trattamenti.some(t=>t.dataInizio&&t.dataInizio>=d)
+  if(md>='07-15'&&md<='08-31'&&!trFrom(y+'-07-01'))
+    push('w','☀️','Trattamento estivo','Nessun trattamento registrato da luglio',{key:'test-'+y})
+  if(md>='12-01'||md<='01-31'){
+    const sy=md>='12-01'?y:y-1
+    if(!trFrom(sy+'-11-01'))push('w','❄️','Trattamento invernale','Nessun trattamento da novembre: periodo di blocco di covata',{key:'tinv-'+sy})
+  }
+
+  // censimento annuale in Banca Dati Apistica (1 nov – 31 dic)
+  if(md>='10-15')push(md>='12-15'?'r':'w','📋','Censimento BDA',
+    `${md<'11-01'?'Dal 1° novembre':'Entro il 31/12'}: comunica le ${hives.length} arnie in Banca Dati Apistica`,{key:'bda-'+y,done:true})
+
+  // regine vecchie
+  const old=hives.filter(a=>{const q=curQueen(a.id);return q&&q.annoIntro&&y-parseInt(q.annoIntro)>=3})
+  if(old.length)push('i','👑','Regine da rinnovare','Introdotte da 3 o più anni',{hives:old.map(a=>({id:a.id,lbl:curQueen(a.id).annoIntro}))})
+
+  const ord={r:0,w:1,i:2}
+  return out.sort((a,b)=>ord[a.lv]-ord[b.lv])
+}
+function rTodo(){
+  const items=todoItems()
+  const el=document.getElementById('dash-todo')
+  if(!items.length){el.innerHTML='<div class="todo-ok">✅ Niente da fare al momento</div>';return}
+  el.innerHTML=`<div class="sec-hdr"><h2>Da fare (${items.length})</h2></div><div class="clist todo">`+items.map(it=>{
+    const chips=it.hives?`<div class="chips">${it.hives.map(x=>`<span class="badge ${it.lv==='r'?'bad':it.lv==='w'?'warn':'neu'}" onclick="openArnia(${jsq(x.id)})">${esc(x.id)}${x.lbl?' · '+esc(x.lbl):''}</span>`).join('')}</div>`:''
+    const act=it.key?`<button class="btn-sm" onclick="event.stopPropagation();dismiss(${jsq(it.key)})">${it.done?'Fatto':'Nascondi'}</button>`:''
+    const tap=it.edit?` onclick="openM('${it.edit[0]}',${jsq(it.edit[1])})" style="cursor:pointer"`:''
+    return`<div class="citem todo-${it.lv}"${tap}>
+      <div class="tl-ico">${it.ico}</div>
+      <div class="citem-left"><div class="citem-title tl-wrap">${esc(it.title)}</div>
+        <div class="citem-sub tl-wrap">${esc(it.sub)}</div>${chips}</div>
+      ${act?`<div class="citem-right">${act}</div>`:''}</div>`
+  }).join('')+'</div>'
+}
+
 function rDash(){
+  rTodo()
   const y=new Date().getFullYear()
   const ym=y+'-'+String(new Date().getMonth()+1).padStart(2,'0')
   const att=db.arnie.filter(a=>a.stato==='Attiva').length
-  const rv=db.regine.filter(r=>r.annoIntro&&(y-parseInt(r.annoIntro))<3).length
-  const rw=db.regine.filter(r=>r.annoIntro&&(y-parseInt(r.annoIntro))>=3).length
+  // conta solo la regina attuale di ogni arnia (non quelle già sostituite)
+  const cq=db.arnie.map(a=>curQueen(a.id)).filter(Boolean)
+  const rv=cq.filter(r=>r.annoIntro&&(y-parseInt(r.annoIntro))<3).length
+  const rw=cq.filter(r=>r.annoIntro&&(y-parseInt(r.annoIntro))>=3).length
   const kg=db.produzione.filter(p=>p.data&&p.data.startsWith(y)).reduce((s,p)=>s+(parseFloat(p.kg)||0),0)
   const tm=db.trattamenti.filter(t=>t.dataInizio&&t.dataInizio.startsWith(ym)).length
   document.getElementById('dash-stats').innerHTML=`
@@ -483,12 +727,12 @@ function rDash(){
     <div class="stat b"><div class="stat-val">${tm}</div><div class="stat-lbl">Trattam. mese</div></div>`
   let h=''
   db.arnie.forEach(a=>{
-    const reg=db.regine.find(r=>r.arniaId===a.id)
+    const reg=curQueen(a.id)
     const lt=lastOf(db.trattamenti,'arniaId',a.id,'dataInizio')
     const li=lastOf(db.ispezioni,'arniaId',a.id,'data')
     const kgy=suOf(db.produzione.filter(p=>p.data&&p.data.startsWith(y)),'arniaId',a.id,'kg')
-    const sb=a.stato==='Attiva'?bdg('Attiva','ok'):a.stato==='Morta'?bdg('Morta','bad'):bdg(a.stato,'neu')
-    h+=`<div class="dash-item">
+    const sb=sbdg(a)
+    h+=`<div class="dash-item tap" onclick="openArnia(${jsq(a.id)})">
       <div class="dash-num">${esc(a.id)}</div>
       <div class="dash-info">
         ${sb}
@@ -501,6 +745,7 @@ function rDash(){
       <div class="dash-right">
         ${kgy>0?`<div class="kg">${kgy.toFixed(1)}</div><div class="lbl">kg</div>`:''}
       </div>
+      <div class="chev">›</div>
     </div>`
   })
   document.getElementById('dash-list').innerHTML=h||'<div class="empty">Nessun dato</div>'
@@ -513,12 +758,12 @@ function rArnie(q=''){
     .filter(a=>!q||JSON.stringify(a).toLowerCase().includes(q.toLowerCase()))
   let h=''
   list.forEach(a=>{
-    const sb=a.stato==='Attiva'?bdg('Attiva','ok'):a.stato==='Morta'?bdg('Morta','bad'):bdg(a.stato,'neu')
+    const sb=sbdg(a)
     const sub=[a.tipo,a.posizione,a.telaini?a.telaini+' telaini':''].filter(Boolean).join(' · ')
     h+=`<div class="clist" style="margin-bottom:10px">
       <div class="citem">
-        <div class="citem-left">
-          <div class="citem-title">${esc(a.id)}</div>
+        <div class="citem-left" onclick="openArnia(${jsq(a.id)})">
+          <div class="citem-title">${esc(a.id)} <span class="chev">›</span></div>
           <div class="citem-sub">${esc(sub)}</div>
           ${a.dataInst?`<div class="citem-sub">Installata il ${fmt(a.dataInst)}</div>`:''}
           ${a.note?`<div class="citem-sub" style="font-style:italic">${esc(a.note)}</div>`:''}
@@ -526,8 +771,8 @@ function rArnie(q=''){
         <div class="citem-right">
           ${sb}
           <div class="citem-actions">
-            <button class="btn-sm" onclick="openM('arnia','${esc(a.id)}')">✏️</button>
-            <button class="btn-sm btn-del" onclick="del('arnie','${esc(a.id)}','arnie')">🗑</button>
+            <button class="btn-sm" onclick="openM('arnia',${jsq(a.id)})">✏️</button>
+            <button class="btn-sm btn-del" onclick="del('arnie',${jsq(a.id)},'arnie')">🗑</button>
           </div>
         </div>
       </div>
@@ -725,21 +970,36 @@ function rVendite(q=''){
 
 // DELETE
 function del(coll,id,sec){
-  if(!confirm('Eliminare?'))return
+  let msg='Eliminare?'
+  if(coll==='arnie'){
+    // i record collegati restano nello storico (produzione, trattamenti…)
+    const n=['regine','trattamenti','produzione','ispezioni'].reduce((s,c)=>s+db[c].filter(r=>r.arniaId===id).length,0)
+    if(n)msg=`Eliminare ${id}?\n\n${n} record collegati (regine, trattamenti, raccolte, ispezioni) resteranno nello storico.`
+  }
+  if(!confirm(msg))return
   db[coll]=db[coll].filter(r=>r.id!==id);save();render(sec)
 }
 
 // MODAL
-const aopts=()=>db.arnie.map(a=>`<option value="${esc(a.id)}">${esc(a.id)}</option>`).join('')
+// Select arnia con il valore del record preselezionato; all=true aggiunge "Tutto l'apiario"
+function asel(d,all=false){
+  const v=d.arniaId??''
+  const ids=db.arnie.map(a=>a.id)
+  if(v&&!ids.includes(v))ids.push(v) // arnia eliminata: non perdere il riferimento
+  return`<select name="arniaId">${all?`<option value="">— Tutto l'apiario —</option>`:''}${
+    ids.map(id=>`<option value="${esc(id)}"${id===v?' selected':''}>${esc(id)}</option>`).join('')}</select>`
+}
 function nextArniaId(){
   const nums=new Set(db.arnie.map(a=>{const m=a.id.match(/(\d+)$/);return m?parseInt(m[1]):0}))
   let n=1
   while(nums.has(n))n++
   return aid(n)
 }
-function openM(type,id=null){
+// campo data principale per tipo: sui nuovi record viene pre-compilato con oggi
+const DATE_F={trattamento:'dataInizio',produzione:'data',ispezione:'data',spesa:'data',vendita:'data'}
+function openM(type,id=null,preset={}){
   eType=type;eId=id
-  const d=id?getRec(type,id):{}
+  const d=id?getRec(type,id):{...(DATE_F[type]?{[DATE_F[type]]:today()}:{}),...preset}
   // Pre-compila l'id suggerito per le nuove arnie
   if(type==='arnia'&&!id)d._suggestId=nextArniaId()
   document.getElementById('m-title').textContent=(id?'Modifica ':'Nuovo ')+
@@ -748,21 +1008,17 @@ function openM(type,id=null){
   document.getElementById('overlay').classList.add('on')
 }
 function closeM(){document.getElementById('overlay').classList.remove('on');eId=null;eType=null}
-function getRec(type,id){
-  const m={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni'}
-  return db[m[type]].find(r=>r.id===id)||{}
-}
+function getRec(type,id){return db[COLL[type]].find(r=>r.id===id)||{}}
 
 function fi(k,d,type='text',ph=''){return`<input type="${type}" name="${k}" value="${esc(d[k]??'')}" placeholder="${ph}">`}
 function fs(k,d,opts){const v=d[k]||'';return`<select name="${k}">${opts.map(o=>`<option value="${o}"${v===o?' selected':''}>${o||'— seleziona —'}</option>`).join('')}</select>`}
 function ft(k,d,ph=''){return`<textarea name="${k}" placeholder="${ph}">${esc(d[k]??'')}</textarea>`}
-function fg(lbl,body,full=false){return`<div class="fgrp${full?' full':''}""><label>${lbl}</label>${body}</div>`}
+function fg(lbl,body,full=false){return`<div class="fgrp${full?' full':''}"><label>${lbl}</label>${body}</div>`}
 function fgrid(cols){return`<div class="fgrid">${cols}</div>`}
 
 function buildF(type,d){
   const btn=`<button type="submit" class="btn-save">Salva</button>`
   const wrap=b=>`<form onsubmit="submitF(event,'${type}')">${b}${btn}</form>`
-  const ao=aopts()
 
   if(type==='arnia') return wrap(
     fgrid(fg('N° Arnia',`<input type="text" name="id" value="${esc(d.id||d._suggestId||'')}" placeholder="es. Arnia 31">`)+fg('Tipo',fs('tipo',d,['Langstroth','Dadant','Lusitana','Top-bar','Arnietta portasciami','Altro'])))+
@@ -772,7 +1028,7 @@ function buildF(type,d){
     fg('Note',ft('note',d)))
 
   if(type==='regina') return wrap(
-    fgrid(fg('Arnia',`<select name="arniaId">${ao}</select>`)+fg('Anno Nascita',fi('annoNascita',d,'number','2024')))+
+    fgrid(fg('Arnia',asel(d))+fg('Anno Nascita',fi('annoNascita',d,'number','2024')))+
     fgrid(fg('Anno Introduzione',fi('annoIntro',d,'number','2024'))+fg('Razza',fs('razza',d,['','Ligustica','Carnica','Buckfast','Locale','Ape nera F0','Ape nera F1','Ibrido','Altro'])))+
     fgrid(fg('Colore Marcatura',fs('colore',d,['','Bianco','Giallo','Rosso','Verde','Blu']))+fg('Madre (arnia)',fi('madre',d,'text','facoltativo')))+
     fgrid(fg('Data Sostituzione',fi('dataSost',d,'date'))+fg('Motivo',fi('motivo',d)))+
@@ -780,7 +1036,7 @@ function buildF(type,d){
 
   if(type==='trattamento') return wrap(
     fgrid(fg('Data Inizio',fi('dataInizio',d,'date'))+fg('Data Fine',fi('dataFine',d,'date')))+
-    fg('Arnia / Apiario',`<select name="arniaId"><option value="">— Tutto l'apiario —</option>${ao}</select>`)+
+    fg('Arnia / Apiario',`${asel(d,true)}`)+
     fgrid(fg('Patologia',fs('parassita',d,['','Varroa','Nosema','Mal di maggio','Peste americana','Peste europea','Calcificazione','Aethina tumida','Altro']))+
       fg('Prodotto',fs('prodotto',d,['','Api-Bioxal (ossalico)','Api-Bioxal sublimazione','Apivar (amitraz)','Thymovar (timolo)','ApiLife Var','MAQS (formico)','Acido formico','Altro'])))+
     fgrid(fg('Principio Attivo',fi('principio',d))+fg('Dose / Modalità',fi('dose',d)))+
@@ -788,14 +1044,14 @@ function buildF(type,d){
     fg('Operatore',fi('operatore',d))+fg('Note',ft('note',d)))
 
   if(type==='produzione') return wrap(
-    fgrid(fg('Data Raccolta',fi('data',d,'date'))+fg('Arnia',`<select name="arniaId">${ao}</select>`))+
+    fgrid(fg('Data Raccolta',fi('data',d,'date'))+fg('Arnia',asel(d)))+
     fgrid(fg('Tipo Miele',fs('tipoMiele',d,['','Millefiori','Acacia','Castagno','Tiglio','Girasole','Agrumi','Eucalipto','Melata','Altro']))+fg('Kg Raccolti',fi('kg',d,'number','0')))+
     fgrid(fg('N° Melari',fi('melari',d,'number'))+fg('Umidità %',fi('umidita',d,'number')))+
     fgrid(fg('Qualità',fs('qualita',d,['','Ottima','Buona','Discreta','Scartata']))+fg('Lotto',fi('lotto',d)))+
     fg('Note',ft('note',d)))
 
   if(type==='ispezione') return wrap(
-    fgrid(fg('Data',fi('data',d,'date'))+fg('Arnia',`<select name="arniaId">${ao}</select>`))+
+    fgrid(fg('Data',fi('data',d,'date'))+fg('Arnia',asel(d)))+
     fgrid(fg('Regina Presente',fs('regina',d,['','Sì','No','N/D']))+fg('Uova',fs('uova',d,['','Sì','No','N/D'])))+
     fgrid(fg('Larve',fs('larve',d,['','Sì','No','N/D']))+fg('Covata',fs('covata',d,['','Regolare','Irregolare','Assente'])))+
     fgrid(fg('Sciamatura',fs('sciamatura',d,['','No','Celle reali','Sciame emesso']))+fg('Forza (1-5)',fs('forza',d,['','1','2','3','4','5'])))+
@@ -822,12 +1078,28 @@ function submitF(e,type){
   e.preventDefault()
   const fd=new FormData(e.target),data={}
   fd.forEach((v,k)=>data[k]=v)
-  const m={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni',spesa:'spese',vendita:'vendite'}
-  const s={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni',spesa:'economia',vendita:'economia'}
-  const coll=m[type]
-  if(eId){const i=db[coll].findIndex(r=>r.id===eId);if(i>=0){data.id=eId;db[coll][i]=data}}
-  else{data.id=(type==='arnia'&&data.id)?data.id:uid();db[coll].push(data)}
-  save();closeM();render(s[type])
+  const coll=COLL[type]
+  if(type==='arnia'){
+    data.id=(data.id||'').trim()
+    if(!data.id){alert('Inserisci il numero/nome dell\'arnia');return}
+    if(data.id!==eId&&db.arnie.some(a=>a.id===data.id)){alert(`Esiste già un'arnia "${data.id}"`);return}
+  }
+  if(eId){
+    const i=db[coll].findIndex(r=>r.id===eId)
+    if(i>=0){
+      if(type==='arnia'){
+        // rinomina: aggiorna i riferimenti in tutti i record collegati
+        if(data.id!==eId){
+          ['regine','trattamenti','produzione','ispezioni'].forEach(c=>db[c].forEach(r=>{if(r.arniaId===eId)r.arniaId=data.id}))
+          if(detId===eId)detId=data.id
+        }
+      }else data.id=eId
+      db[coll][i]=data
+    }
+  }
+  else{if(type!=='arnia')data.id=uid();db[coll].push(data)}
+  // ridisegna la sezione visibile (anche la scheda arnia se il form è partito da lì)
+  save();closeM();render(curSec)
 }
 
 load();rDash()
