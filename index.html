@@ -181,10 +181,36 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 .menu-grid button small{font-size:.75rem;font-weight:500;color:var(--text2)}
 .menu-grid button:active{background:var(--honey-d)}
 
+/* ── GRAFICI (barre orizzontali in HTML, niente librerie: funziona offline) ── */
+.chart{background:var(--white);border-radius:16px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:14px}
+.chart h3{font-size:.92rem;color:var(--amber);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chart h3 select{font-size:.8rem;padding:4px 8px;border:1px solid var(--sep);border-radius:8px;background:var(--honey)}
+.hb-row{display:grid;grid-template-columns:76px 1fr auto;align-items:center;gap:8px;min-height:28px}
+.hb-lbl{font-size:.8rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb-bar{height:14px;background:var(--amber-l);border-radius:0 4px 4px 0;min-width:2px}
+.hb-bar.s1{background:#2a78d6}.hb-bar.s2{background:#eb6834}
+.hb-val{font-size:.8rem;color:var(--text);text-align:right;min-width:64px;font-variant-numeric:tabular-nums}
+.hb-glbl{font-size:.82rem;font-weight:600;margin:10px 0 2px;display:flex;justify-content:space-between;color:var(--text)}
+.hb-glbl span{font-weight:500;color:var(--text2)}
+.legend{display:flex;gap:14px;font-size:.78rem;color:var(--text2);margin-bottom:4px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+/* ── REGISTRO TRATTAMENTI ── */
+.reg-head{background:var(--white);border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);font-size:.85rem;line-height:1.6}
+.reg-head b{color:var(--amber)}
+.reg-wrap{overflow-x:auto;background:var(--white);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);-webkit-overflow-scrolling:touch}
+.reg{border-collapse:collapse;font-size:.74rem;min-width:980px;width:100%}
+.reg th,.reg td{border:1px solid var(--sep);padding:6px;text-align:left;vertical-align:top}
+.reg th{background:var(--honey-d);font-weight:600}
+.reg td.miss{background:#FEF2F2}
+.reg-warn{font-size:.8rem;color:#B45309;margin:10px 2px}
+
 /* ── SCHEDA ARNIA ── */
 .btn-back{background:none;border:none;cursor:pointer;color:var(--amber);
   font-size:1rem;font-weight:600;padding:6px 0}
 .qact{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.minfo{background:var(--white);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:10px 14px;margin-bottom:12px;font-size:.88rem}
+.minfo .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0}
 .qact button{background:var(--white);border:1.5px solid var(--gold);color:var(--amber);
   border-radius:14px;padding:12px 4px;font-size:.85rem;font-weight:600;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;gap:4px}
@@ -221,6 +247,11 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   h1,h2{color:#000}
   .stat-val{color:#000}
   .badge,.ok,.warn,.bad,.neu{border:1px solid #ccc;background:#fff!important;color:#000!important}
+  .no-print,.minfo button{display:none!important}
+  .reg-wrap{overflow:visible;box-shadow:none}
+  .reg{min-width:0;font-size:7.5pt}
+  .reg td.miss{background:none}
+  .chart{box-shadow:none;border:1px solid #ccc;break-inside:avoid}
 }
 </style>
 </head>
@@ -228,7 +259,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 
 <div class="topbar" style="display:flex;align-items:center;justify-content:space-between">
   <h1>🐝 Gestione Apiario</h1>
-  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v14</span>
+  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v15</span>
 </div>
 
 <main>
@@ -275,7 +306,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   <div class="sec-hdr">
     <h2>Trattamenti</h2>
     <div style="display:flex;gap:8px">
-      <button class="btn-print" onclick="stampa()">🖨️</button>
+      <button class="btn-print" onclick="go('registro')">📋 Registro</button>
       <button class="btn-add" onclick="openM('trattamento')">+ Nuovo</button>
     </div>
   </div>
@@ -341,6 +372,60 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   </div>
 </div>
 
+<!-- NUTRIZIONE -->
+<div id="s-nutrizione" class="sec">
+  <div class="sec-hdr">
+    <h2>Nutrizione</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn-print" onclick="stampa()">🖨️</button>
+      <button class="btn-add" onclick="openM('nutrizione')">+ Nuova</button>
+    </div>
+  </div>
+  <div id="list-nutrizione"></div>
+</div>
+
+<!-- MELARI -->
+<div id="s-melari" class="sec">
+  <div class="sec-hdr">
+    <h2>Melari</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn-print" onclick="stampa()">🖨️</button>
+      <button class="btn-add" onclick="openM('melario')">+ Posa</button>
+    </div>
+  </div>
+  <div id="list-melari"></div>
+</div>
+
+<!-- NOMADISMO -->
+<div id="s-spostamenti" class="sec">
+  <div class="sec-hdr">
+    <h2>Nomadismo</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn-print" onclick="stampa()">🖨️</button>
+      <button class="btn-add" onclick="openM('spostamento')">+ Spostamento</button>
+    </div>
+  </div>
+  <div id="list-spostamenti"></div>
+</div>
+
+<!-- STATISTICHE -->
+<div id="s-statistiche" class="sec">
+  <div class="sec-hdr">
+    <h2>Statistiche</h2>
+    <button class="btn-print" onclick="stampa()">🖨️</button>
+  </div>
+  <div id="stat-body"></div>
+</div>
+
+<!-- REGISTRO TRATTAMENTI (si apre da Trattamenti) -->
+<div id="s-registro" class="sec">
+  <div class="sec-hdr">
+    <button class="btn-back" onclick="go('trattamenti')">‹ Trattamenti</button>
+    <button class="btn-print" onclick="stampa()">🖨️ Stampa</button>
+  </div>
+  <div id="reg-body"></div>
+</div>
+
 <!-- ALTRO: sezioni meno usate sul campo -->
 <div id="s-altro" class="sec">
   <div class="sec-hdr"><h2>Altro</h2></div>
@@ -385,7 +470,27 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
         <input type="number" inputmode="numeric" min="0" id="set-ispGiorni" onchange="setOpt('ispGiorni',this.value)"></div>
       <div class="set-row"><span class="citem-sub">Soglia allarme varroa (caduta/24h)</span>
         <input type="number" inputmode="decimal" min="0" id="set-varroaSoglia" onchange="setOpt('varroaSoglia',this.value)"></div>
+      <div class="set-row"><span class="citem-sub">Soglia varroa con zucchero/alcol/CO₂ (% di infestazione)</span>
+        <input type="number" inputmode="decimal" min="0" id="set-varroaSogliaPct" onchange="setOpt('varroaSogliaPct',this.value)"></div>
       <button class="btn-sm" style="margin-top:4px" onclick="resetDismissed()">Mostra di nuovo i promemoria nascosti</button>
+    </div>
+  </div>
+  <div class="clist" style="margin-top:12px">
+    <div class="citem" style="flex-direction:column;align-items:flex-start;gap:6px;cursor:default">
+      <div class="citem-title">🏷️ Dati azienda (per il registro trattamenti)</div>
+      <div class="fgrp" style="width:100%;margin:0"><label>Apicoltore / Ragione sociale</label>
+        <input id="set-apicoltore" onchange="setTxt('apicoltore',this.value)"></div>
+      <div class="fgrid" style="width:100%">
+        <div class="fgrp" style="margin:0"><label>Codice aziendale</label><input id="set-codAzienda" onchange="setTxt('codAzienda',this.value)"></div>
+        <div class="fgrp" style="margin:0"><label>Codice apiario BDA</label><input id="set-codApiario" onchange="setTxt('codApiario',this.value)"></div>
+      </div>
+    </div>
+  </div>
+  <div class="clist" style="margin-top:12px">
+    <div class="citem" style="flex-direction:column;align-items:flex-start;gap:6px;cursor:default">
+      <div class="citem-title">📤 Esporta per Excel (CSV)</div>
+      <div class="citem-sub">Un file per archivio, apribile con Excel o Numbers</div>
+      <div class="chips" id="csv-btns"></div>
     </div>
   </div>
   <div class="clist" style="margin-top:12px" id="autobk-panel">
@@ -427,9 +532,12 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 const KEY='apiario_v2'
 var db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[],spese:[],vendite:[]}
 let eId=null,eType=null
-const DEF_SETTINGS={ispGiorni:14,varroaSoglia:10,dismissed:{}}
+const DEF_SETTINGS={ispGiorni:14,varroaSoglia:10,varroaSogliaPct:3,apicoltore:'',codAzienda:'',codApiario:'',dismissed:{}}
 // tipo record → collezione in db
-const COLL={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni',spesa:'spese',vendita:'vendite'}
+const COLL={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni',spesa:'spese',vendita:'vendite',
+  nutrizione:'nutrizione',melario:'melari',spostamento:'spostamenti'}
+// collezioni con record legati a un'arnia (campo arniaId)
+const LINKED=['regine','trattamenti','produzione','ispezioni','nutrizione','melari','spostamenti']
 
 function load(){
   let found=false
@@ -512,9 +620,32 @@ function curQueen(arniaId){
   return best
 }
 function bdg(t,c){return`<span class="badge ${c}">${esc(t)}</span>`}
+function vbdg(i){const v=vInfo(i);return v?bdg('Varroa: '+v.txt,v.alarm?'bad':'warn'):''}
 function qst(yr){if(!yr)return bdg('N/D','neu');return(new Date().getFullYear()-parseInt(yr))>=3?bdg('⚠️ Da rinnovare','warn'):bdg('✅ Valida','ok')}
 function lastOf(arr,af,av,df){return[...arr].filter(r=>r[af]===av).sort((a,b)=>b[df]>a[df]?1:-1)[0]||null}
 function suOf(arr,af,av,kf){return arr.filter(r=>r[af]===av).reduce((s,r)=>s+(parseFloat(r[kf])||0),0)}
+// numero salvato col punto → virgola italiana per la visualizzazione
+function itNum(v){return String(v??'').replace('.',',')}
+function isAlive(a){return a.stato!=='Morta'&&a.stato!=='Inattiva'}
+// Varroa: caduta naturale (acari/24h) oppure conta su campione di ~300 api (zucchero a velo, alcol, CO2) → % infestazione
+function vInfo(i){
+  const v=parseFloat(String(i.varroa??'').replace(',','.'))
+  if(isNaN(v))return null
+  const m=i.varroaMetodo||'Caduta 24h'
+  // val: numero grande nei riquadri, chip: etichetta breve con unità, txt: descrizione completa
+  if(m==='Caduta 24h')return{val:String(v),chip:v+'/24h',lbl:'Varroa/24h',txt:v+'/24h',alarm:v>=db.settings.varroaSoglia}
+  const pct=Math.round(v/3*10)/10
+  return{val:pct+'%',chip:pct+'%',lbl:'Varroa · '+m,txt:`${pct}% (${v} acari, ${m})`,alarm:pct>=db.settings.varroaSogliaPct}
+}
+function lastVarroa(id){return db.ispezioni.filter(i=>i.arniaId===id&&i.data&&vInfo(i)).sort((x,z)=>z.data>x.data?1:-1)[0]||null}
+// Tempo di sospensione (attesa) del farmaco: niente smielatura fino a questa data
+function fineSosp(t){const n=parseInt(t.sospensione),b=t.dataFine||t.dataInizio;return n>0&&b?addDays(b,n):''}
+// trattamento in corso oggi (senza data fine: consideralo attivo per 30 giorni)
+function trAttivo(t,T){return!!t.dataInizio&&t.dataInizio<=T&&(t.dataFine?T<=t.dataFine:daysBetween(t.dataInizio,T)<=30)}
+function melariSu(id){return db.melari.filter(m=>m.arniaId===id&&m.dataPosa&&!m.dataTolta).reduce((s,m)=>s+(parseInt(m.numero)||1),0)}
+function togliMelario(id){const m=db.melari.find(x=>x.id===id);if(!m)return;m.dataTolta=today();save();render(curSec)}
+function posList(){return[...new Set([...db.arnie.map(a=>a.posizione),...db.spostamenti.flatMap(s=>[s.da,s.a])].filter(Boolean))].sort()}
+function dlist(){return`<datalist id="pos-list">${posList().map(p=>`<option value="${esc(p)}">`).join('')}</datalist>`}
 
 // NAV
 let curSec='dashboard',prevSec='dashboard',prevScroll=0,detId=null
@@ -527,10 +658,11 @@ function go(sec){
   render(sec); window.scrollTo(0,0)
 }
 // voce della barra in basso da evidenziare per una sezione
-const IN_ALTRO=['altro','regine','produzione','economia','impostazioni']
+const IN_ALTRO=['altro','regine','produzione','economia','impostazioni','nutrizione','melari','spostamenti','statistiche']
 function navOf(sec){
   // nella scheda arnia resta evidenziata la sezione da cui si è arrivati
   if(sec==='arnia')sec=prevSec
+  if(sec==='registro')return'trattamenti'
   return IN_ALTRO.includes(sec)?'altro':sec
 }
 function rAltro(){
@@ -540,8 +672,12 @@ function rAltro(){
   document.getElementById('altro-grid').innerHTML=
     tile('regine','👑','Regine',db.regine.length+' registrate')+
     tile('produzione','🍯','Produzione',kg.toFixed(1)+' kg nel '+y)+
+    tile('melari','📦','Melari',db.arnie.reduce((s,a)=>s+melariSu(a.id),0)+' su arnie')+
+    tile('nutrizione','🥣','Nutrizione',db.nutrizione.filter(n=>(n.data||'').startsWith(y)).length+' nel '+y)+
+    tile('spostamenti','🚚','Nomadismo',db.spostamenti.length+' spostamenti')+
+    tile('statistiche','📈','Statistiche','Grafici per anno')+
     tile('economia','💰','Economia',db.spese.length+db.vendite.length+' movimenti')+
-    tile('impostazioni','⚙️','Impostazioni','Backup e promemoria')
+    tile('impostazioni','⚙️','Impostazioni','Backup, promemoria, CSV')
 }
 function openArnia(id){
   if(curSec!=='arnia'){prevSec=curSec;prevScroll=window.scrollY||0}
@@ -561,9 +697,36 @@ function render(sec){
   else if(sec==='impostazioni')rImpostazioni()
   else if(sec==='arnia')rArnia()
   else if(sec==='altro')rAltro()
+  else if(sec==='nutrizione')rNutri()
+  else if(sec==='melari')rMelari()
+  else if(sec==='spostamenti')rSpost()
+  else if(sec==='statistiche')rStat()
+  else if(sec==='registro')rRegistro()
 }
 
 // SCHEDA ARNIA
+// Voci dello storico: data, icona, titolo, dettagli
+const EVR={
+  ispezione:r=>{
+    const fz=r.forza?bdg('Forza '+r.forza,parseInt(r.forza)>=4?'ok':parseInt(r.forza)<=2?'bad':'neu'):''
+    const rg=r.regina?bdg('Regina: '+r.regina,r.regina==='Sì'?'ok':'bad'):''
+    const vr=vbdg(r)
+    return{d:r.data,ico:'🔍',title:`Ispezione · ${fmt(r.data)}`,body:
+      (rg||fz||vr?`<div class="citem-sub" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${rg}${fz}${vr}</div>`:'')+
+      (r.problemi?`<div class="citem-sub tl-wrap">⚠️ ${esc(r.problemi)}</div>`:'')+
+      (r.interventi?`<div class="citem-sub tl-wrap">✅ ${esc(r.interventi)}</div>`:'')}
+  },
+  trattamento:r=>({d:r.dataInizio,ico:'💊',title:`${esc(r.prodotto)||'Trattamento'} · ${fmt(r.dataInizio)}${r.dataFine?' → '+fmt(r.dataFine):''}`,
+    body:`<div class="citem-sub">${[r.parassita,r.dose,!r.arniaId?'Tutto l\'apiario':'',fineSosp(r)?'sospensione fino al '+fmt(fineSosp(r)):''].filter(Boolean).map(esc).join(' · ')}</div>`}),
+  produzione:r=>({d:r.data,ico:'🍯',title:`${r.kg?esc(r.kg)+' kg ':''}${esc(r.tipoMiele)||'Raccolta'} · ${fmt(r.data)}`,
+    body:`<div class="citem-sub">${[r.qualita,r.melari?r.melari+' melari':'',r.umidita?'Umidità '+r.umidita+'%':'',r.lotto?'Lotto '+r.lotto:''].filter(Boolean).map(esc).join(' · ')}</div>`}),
+  nutrizione:r=>({d:r.data,ico:'🥣',title:`${esc(r.tipo)||'Nutrizione'} · ${fmt(r.data)}`,
+    body:`<div class="citem-sub">${[r.qta?itNum(r.qta)+' per arnia':'',!r.arniaId?'Tutto l\'apiario':''].filter(Boolean).map(esc).join(' · ')}</div>`}),
+  melario:r=>({d:r.dataPosa,ico:'📦',title:`${r.numero||1} melari posati · ${fmt(r.dataPosa)}`,
+    body:`<div class="citem-sub">${r.dataTolta?'Tolti il '+fmt(r.dataTolta):'Ancora sull\'arnia'}</div>`}),
+  spostamento:r=>({d:r.data,ico:'🚚',title:`Spostata${r.a?' a '+esc(r.a):''} · ${fmt(r.data)}`,
+    body:`<div class="citem-sub">${[r.da?'da '+r.da:'',r.motivo,r.bda==='Sì'?'comunicato in BDA':'da comunicare in BDA'].filter(Boolean).map(esc).join(' · ')}</div>`}),
+}
 function rArnia(){
   const el=document.getElementById('arnia-det')
   const a=db.arnie.find(x=>x.id===detId)
@@ -574,19 +737,23 @@ function rArnia(){
   const prod=db.produzione.filter(p=>p.arniaId===a.id)
   const kgOf=l=>l.reduce((s,p)=>s+(parseFloat(p.kg)||0),0)
   const kgY=kgOf(prod.filter(p=>p.data&&p.data.startsWith(y))),kgT=kgOf(prod)
-  const isp=db.ispezioni.filter(i=>i.arniaId===a.id)
   const li=lastOf(db.ispezioni,'arniaId',a.id,'data')
-  const gg=li&&li.data?Math.floor((new Date(today())-new Date(li.data))/864e5):null
-  const lv=[...isp].filter(i=>i.varroa!==''&&i.varroa!=null).sort((x,z)=>z.data>x.data?1:-1)[0]
-  // i trattamenti su tutto l'apiario valgono anche per questa arnia
-  const tr=db.trattamenti.filter(t=>t.arniaId===a.id||!t.arniaId)
+  const gg=li&&li.data?daysBetween(li.data,today()):null
+  const lv=lastVarroa(a.id),vi=lv&&vInfo(lv)
+  const mine=r=>r.arniaId===a.id
+  const mineOrAll=r=>!r.arniaId||r.arniaId===a.id // i record su tutto l'apiario valgono anche per questa arnia
   const ev=[
-    ...isp.map(r=>({d:r.data,t:'ispezione',r})),
-    ...tr.map(r=>({d:r.dataInizio,t:'trattamento',r})),
-    ...prod.map(r=>({d:r.data,t:'produzione',r}))
-  ].sort((x,z)=>(z.d||'')>(x.d||'')?1:(z.d||'')<(x.d||'')?-1:0)
+    ...db.ispezioni.filter(mine).map(r=>['ispezione',r]),
+    ...db.trattamenti.filter(mineOrAll).map(r=>['trattamento',r]),
+    ...prod.map(r=>['produzione',r]),
+    ...db.nutrizione.filter(mineOrAll).map(r=>['nutrizione',r]),
+    ...db.melari.filter(mine).map(r=>['melario',r]),
+    ...db.spostamenti.filter(s=>(s.arnie||[]).includes(a.id)).map(r=>['spostamento',r]),
+  ].map(([t,r])=>({t,r,...EVR[t](r)})).sort((x,z)=>(z.d||'')>(x.d||'')?1:(z.d||'')<(x.d||'')?-1:0)
   const aj=jsq(a.id)
   const sub=[a.tipo,a.posizione,a.telaini?a.telaini+' telaini':''].filter(Boolean).join(' · ')
+  const figlie=db.arnie.filter(x=>x.origine===a.id)
+  const mOpen=db.melari.filter(m=>m.arniaId===a.id&&m.dataPosa&&!m.dataTolta)
 
   let h=`<div class="clist"><div class="citem" style="cursor:default;align-items:flex-start">
     <div class="citem-left">
@@ -594,6 +761,8 @@ function rArnia(){
       ${sub?`<div class="citem-sub">${esc(sub)}</div>`:''}
       ${a.dataInst?`<div class="citem-sub">Installata il ${fmt(a.dataInst)}</div>`:''}
       ${a.colore?`<div class="citem-sub">Contrassegno: ${esc(a.colore)}</div>`:''}
+      ${a.origineTipo||a.origine?`<div class="citem-sub">Origine: ${esc(a.origineTipo||'')}${a.origine?` da <span class="badge neu" style="cursor:pointer" onclick="openArnia(${jsq(a.origine)})">${esc(a.origine)}</span>`:''}</div>`:''}
+      ${figlie.length?`<div class="citem-sub">Nuclei/sciami derivati: ${figlie.map(f=>`<span class="badge neu" style="cursor:pointer" onclick="openArnia(${jsq(f.id)})">${esc(f.id)}</span>`).join(' ')}</div>`:''}
       ${a.note?`<div class="citem-sub tl-wrap" style="font-style:italic">${esc(a.note)}</div>`:''}
     </div>
     <div class="citem-right">${sbdg(a)}<button class="btn-sm" onclick="openM('arnia',${aj})">✏️</button></div>
@@ -602,12 +771,17 @@ function rArnia(){
     <button onclick="openM('ispezione',null,{arniaId:${aj}})"><span>🔍</span>Ispezione</button>
     <button onclick="openM('trattamento',null,{arniaId:${aj}})"><span>💊</span>Trattamento</button>
     <button onclick="openM('produzione',null,{arniaId:${aj}})"><span>🍯</span>Raccolta</button>
+    <button onclick="openM('nutrizione',null,{arniaId:${aj}})"><span>🥣</span>Nutrizione</button>
+    <button onclick="openM('melario',null,{arniaId:${aj},numero:'1'})"><span>📦</span>Melari</button>
+    <button onclick="openM('spostamento',null,{arniaId:${aj},da:${jsq(a.posizione||'')}})"><span>🚚</span>Sposta</button>
   </div>
+  ${mOpen.length?`<div class="minfo">${mOpen.map(m=>`<div class="row"><span>📦 <b>${esc(m.numero||1)} melari</b> su dal ${fmt(m.dataPosa)}</span>
+    <button class="btn-sm" onclick="togliMelario(${jsq(m.id)})">Tolti oggi</button></div>`).join('')}</div>`:''}
   <div class="stats">
     <div class="stat"><div class="stat-val">${kgY.toFixed(1)}</div><div class="stat-lbl">kg miele ${y}</div></div>
     <div class="stat"><div class="stat-val">${kgT.toFixed(1)}</div><div class="stat-lbl">kg totali</div></div>
     <div class="stat b"><div class="stat-val">${gg==null?'—':gg}</div><div class="stat-lbl">${gg==null?'Nessuna ispezione':'giorni dall\'ultima ispezione'}</div></div>
-    <div class="stat r"><div class="stat-val">${lv?esc(lv.varroa):'—'}</div><div class="stat-lbl">Varroa/24h${lv?' ('+fmt(lv.data)+')':''}</div></div>
+    <div class="stat r"><div class="stat-val">${vi?esc(vi.val):'—'}</div><div class="stat-lbl">${vi?esc(vi.lbl)+' ('+fmt(lv.data)+')':'Varroa'}</div></div>
   </div>
   <div class="sec-hdr"><h2>Regina</h2><button class="btn-add" onclick="openM('regina',null,{arniaId:${aj},annoIntro:'${y}'})">+ Nuova</button></div>`
 
@@ -625,36 +799,151 @@ function rArnia(){
   <div class="sec-hdr"><h2>Storico (${ev.length})</h2></div>`
 
   if(!ev.length){el.innerHTML=h+'<div class="empty">Nessun evento registrato</div>';return}
-  h+='<div class="clist">'+ev.map(({t,r})=>{
-    let ico,title,body=''
-    if(t==='ispezione'){
-      ico='🔍';title=`Ispezione · ${fmt(r.data)}`
-      const fz=r.forza?bdg('Forza '+r.forza,parseInt(r.forza)>=4?'ok':parseInt(r.forza)<=2?'bad':'neu'):''
-      const rg=r.regina?bdg('Regina: '+r.regina,r.regina==='Sì'?'ok':'bad'):''
-      const vr=r.varroa?bdg('Varroa: '+r.varroa+'/24h','warn'):''
-      body=(rg||fz||vr?`<div class="citem-sub" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${rg}${fz}${vr}</div>`:'')+
-        (r.problemi?`<div class="citem-sub tl-wrap">⚠️ ${esc(r.problemi)}</div>`:'')+
-        (r.interventi?`<div class="citem-sub tl-wrap">✅ ${esc(r.interventi)}</div>`:'')
-    }else if(t==='trattamento'){
-      ico='💊';title=`${esc(r.prodotto)||'Trattamento'} · ${fmt(r.dataInizio)}${r.dataFine?' → '+fmt(r.dataFine):''}`
-      body=`<div class="citem-sub">${[r.parassita,r.dose,!r.arniaId?'Tutto l\'apiario':''].filter(Boolean).map(esc).join(' · ')}</div>`
-    }else{
-      ico='🍯';title=`${r.kg?esc(r.kg)+' kg ':''}${esc(r.tipoMiele)||'Raccolta'} · ${fmt(r.data)}`
-      body=`<div class="citem-sub">${[r.qualita,r.melari?r.melari+' melari':'',r.umidita?'Umidità '+r.umidita+'%':'',r.lotto?'Lotto '+r.lotto:''].filter(Boolean).map(esc).join(' · ')}</div>`
-    }
-    return`<div class="citem" style="align-items:flex-start" onclick="openM('${t}',${jsq(r.id)})">
-      <div class="tl-ico">${ico}</div>
-      <div class="citem-left"><div class="citem-title">${title}</div>${body}</div></div>`
-  }).join('')+'</div>'
+  h+='<div class="clist">'+ev.map(e=>`<div class="citem" style="align-items:flex-start" onclick="openM('${e.t}',${jsq(e.r.id)})">
+      <div class="tl-ico">${e.ico}</div>
+      <div class="citem-left"><div class="citem-title">${e.title}</div>${e.body}</div></div>`).join('')+'</div>'
   el.innerHTML=h
 }
+
+// Riga di elenco con modifica/elimina (sezioni Nutrizione, Melari, Nomadismo)
+function rowCard(type,r,title,subs,right,sec){
+  return`<div class="clist" style="margin-bottom:10px"><div class="citem">
+    <div class="citem-left"><div class="citem-title">${title}</div>${subs.filter(Boolean).map(s=>`<div class="citem-sub tl-wrap">${s}</div>`).join('')}</div>
+    <div class="citem-right">${right||''}<div class="citem-actions">
+      <button class="btn-sm" onclick="openM('${type}',${jsq(r.id)})">✏️</button>
+      <button class="btn-sm btn-del" onclick="del('${COLL[type]}',${jsq(r.id)},'${sec}')">🗑</button>
+    </div></div></div></div>`
+}
+const byDateDesc=k=>(x,z)=>(z[k]||'')>(x[k]||'')?1:(z[k]||'')<(x[k]||'')?-1:0
+
+// NUTRIZIONE
+function rNutri(){
+  const l=[...db.nutrizione].sort(byDateDesc('data'))
+  document.getElementById('list-nutrizione').innerHTML=l.map(n=>rowCard('nutrizione',n,
+    `${fmt(n.data)} · ${esc(n.tipo)||'Nutrizione'}`,[esc(n.arniaId||"Tutto l'apiario")+(n.qta?' · '+esc(itNum(n.qta))+' per arnia':''),n.note?`<i>${esc(n.note)}</i>`:''],'','nutrizione')).join('')
+    ||'<div class="empty">Nessuna nutrizione registrata</div>'
+}
+
+// MELARI
+function rMelari(){
+  // prima quelli ancora sulle arnie, poi i più recenti
+  const l=[...db.melari].sort((x,z)=>(!!x.dataTolta)-(!!z.dataTolta)||byDateDesc('dataPosa')(x,z))
+  const open=l.filter(m=>!m.dataTolta)
+  document.getElementById('list-melari').innerHTML=
+    (open.length?`<div class="total-row"><span class="lbl">Melari sulle arnie</span><span class="val">${open.reduce((s,m)=>s+(parseInt(m.numero)||1),0)}</span></div>`:'')+
+    l.map(m=>rowCard('melario',m,`${esc(m.arniaId)} · ${esc(m.numero||1)} melari`,
+      [`Posati il ${fmt(m.dataPosa)}${m.dataTolta?' · tolti il '+fmt(m.dataTolta):''}`,m.note?`<i>${esc(m.note)}</i>`:''],
+      m.dataTolta?bdg('Tolti','neu'):`<button class="btn-sm" onclick="togliMelario(${jsq(m.id)})">Tolti oggi</button>`,'melari')).join('')
+    ||'<div class="empty">Nessun melario registrato</div>'
+}
+
+// NOMADISMO
+function rSpost(){
+  const l=[...db.spostamenti].sort(byDateDesc('data'))
+  document.getElementById('list-spostamenti').innerHTML=l.map(s=>rowCard('spostamento',s,
+    `${fmt(s.data)} · ${esc(s.da||'?')} → ${esc(s.a||'?')}`,
+    [`${(s.arnie||[]).length} arnie${s.motivo?' · '+esc(s.motivo):''}`,(s.arnie||[]).map(esc).join(', ')],
+    s.bda==='Sì'?bdg('BDA ✓','ok'):bdg('Da comunicare','warn'),'spostamenti')).join('')
+    ||'<div class="empty">Nessuno spostamento registrato</div>'
+}
+
+// REGISTRO TRATTAMENTI (formato per controlli ASL: farmaco, lotto, ricetta, tempi di attesa)
+let regYear=null
+function rRegistro(){
+  const ys=[...new Set(db.trattamenti.map(t=>(t.dataInizio||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort().reverse()
+  const cy=String(new Date().getFullYear())
+  if(!regYear||!ys.includes(regYear))regYear=ys.includes(cy)?cy:(ys[0]||cy)
+  const alive=db.arnie.filter(isAlive).length
+  const rows=db.trattamenti.filter(t=>(t.dataInizio||'').startsWith(regYear)).sort((x,z)=>(x.dataInizio||'')>(z.dataInizio||'')?1:-1)
+  const st=db.settings
+  const cell=(v,req)=>`<td${req&&!v?' class="miss"':''}>${v?esc(v):'—'}</td>`
+  let miss=0
+  const body=rows.map((t,i)=>{
+    if(!t.ricetta||!t.lottoFarmaco)miss++
+    const dove=t.arniaId?t.arniaId:"Tutto l'apiario"
+    const n=t.nArnie||(t.arniaId?'1':String(alive))
+    return`<tr onclick="openM('trattamento',${jsq(t.id)})" style="cursor:pointer"><td>${i+1}</td>${cell(fmt(t.dataInizio))}${cell(fmt(t.dataFine))}${cell(dove)}${cell(n)}
+      ${cell(t.prodotto,1)}${cell(t.principio)}${cell(t.lottoFarmaco,1)}${cell(fmt(t.scadFarmaco))}${cell(t.qtaFarmaco||t.dose)}${cell(t.ricetta,1)}
+      ${cell(t.sospensione?t.sospensione+' gg':'')}${cell(fmt(fineSosp(t)))}${cell(t.veterinario)}${cell(t.operatore)}<td style="min-width:70px"></td></tr>`
+  }).join('')
+  document.getElementById('reg-body').innerHTML=`
+    <div class="reg-head">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Registro dei trattamenti ${regYear}</b>
+        <select class="no-print" onchange="regYear=this.value;rRegistro()" style="padding:4px 8px;border-radius:8px;border:1px solid var(--sep)">${(ys.length?ys:[cy]).map(y=>`<option${y===regYear?' selected':''}>${y}</option>`).join('')}</select></div>
+      Apicoltore: ${esc(st.apicoltore)||'—'} · Codice aziendale: ${esc(st.codAzienda)||'—'} · Apiario BDA: ${esc(st.codApiario)||'—'}
+      ${!st.apicoltore||!st.codAzienda?`<div class="no-print" style="font-size:.78rem;color:var(--text2)">Completa i dati azienda in Altro → Impostazioni</div>`:''}
+    </div>
+    ${miss?`<div class="reg-warn no-print">⚠️ ${miss} trattament${miss===1?'o':'i'} senza n° ricetta o lotto del farmaco (celle in rosso): tocca la riga per completarl${miss===1?'o':'i'}.</div>`:''}
+    ${rows.length?`<div class="reg-wrap"><table class="reg"><thead><tr><th>N°</th><th>Inizio</th><th>Fine</th><th>Arnie / apiario</th><th>N° arnie</th>
+      <th>Farmaco</th><th>Principio attivo</th><th>Lotto</th><th>Scadenza</th><th>Quantità</th><th>N° ricetta</th>
+      <th>Sospensione</th><th>Fine sospensione</th><th>Veterinario</th><th>Operatore</th><th>Firma</th></tr></thead><tbody>${body}</tbody></table></div>`
+      :'<div class="empty">Nessun trattamento nel '+regYear+'</div>'}`
+}
+
+// STATISTICHE: barre orizzontali, un solo asse, valore sempre scritto in punta
+let statYear=null
+function hbars(rows,fv,cls=''){
+  const max=Math.max(...rows.map(r=>r.v),0)||1
+  return rows.map(r=>`<div class="hb-row"${r.click?` onclick="${r.click}" style="cursor:pointer"`:''} title="${esc(r.l)}: ${esc(fv(r.v))}">
+    <span class="hb-lbl">${esc(r.l)}</span>
+    <div><div class="hb-bar ${r.cls||cls}" style="width:${r.v>0?Math.max(r.v/max*100,1):0}%"></div></div>
+    <span class="hb-val">${esc(fv(r.v))}</span></div>`).join('')
+}
+function rStat(){
+  const yr=r=>(r.data||'').slice(0,4)
+  const ys=[...new Set([...db.produzione,...db.spese,...db.vendite].map(yr).filter(y=>/^\d{4}$/.test(y)))].sort()
+  const cy=String(new Date().getFullYear())
+  if(!statYear||!ys.includes(statYear))statYear=ys.includes(cy)?cy:(ys[ys.length-1]||cy)
+  const sum=(l,k)=>l.reduce((s,r)=>s+(parseFloat(r[k])||0),0)
+  const kgF=n=>n.toLocaleString('it-IT',{maximumFractionDigits:1})+' kg'
+  const eurF=n=>'€ '+n.toLocaleString('it-IT',{maximumFractionDigits:0})
+  const el=document.getElementById('stat-body')
+  if(!ys.length){el.innerHTML='<div class="empty">Ancora nessun dato: registra raccolte, spese o vendite</div>';return}
+  const kgY=ys.map(y=>({l:y,v:sum(db.produzione.filter(p=>yr(p)===y),'kg')}))
+  const perA=db.arnie.map(a=>({l:a.id,v:sum(db.produzione.filter(p=>p.arniaId===a.id&&yr(p)===statYear),'kg'),click:`openArnia(${jsq(a.id)})`}))
+    .filter(r=>r.v>0).sort((x,z)=>z.v-x.v)
+  const bil=ys.map(y=>({y,v:sum(db.vendite.filter(r=>yr(r)===y),'importo'),s:sum(db.spese.filter(r=>yr(r)===y),'importo')}))
+  el.innerHTML=`
+    <div class="chart"><h3>Miele raccolto per anno</h3>${hbars(kgY.slice().reverse(),kgF)}</div>
+    <div class="chart"><h3>Miele per arnia
+      <select class="no-print" onchange="statYear=this.value;rStat()">${ys.slice().reverse().map(y=>`<option${y===statYear?' selected':''}>${y}</option>`).join('')}</select></h3>
+      ${perA.length?hbars(perA,kgF):`<div class="citem-sub">Nessuna raccolta nel ${statYear}</div>`}
+      ${perA.length?`<div class="citem-sub" style="margin-top:8px">Media ${kgF(perA.reduce((s,r)=>s+r.v,0)/perA.length)} su ${perA.length} arnie produttive · tocca un'arnia per la scheda</div>`:''}</div>
+    <div class="chart"><h3>Bilancio per anno</h3>
+      <div class="legend"><span><i class="hb-bar s1"></i>Vendite</span><span><i class="hb-bar s2"></i>Spese</span></div>
+      ${bil.slice().reverse().map(b=>`<div class="hb-glbl">${b.y}<span>saldo ${b.v-b.s>=0?'+':'−'}${eurF(Math.abs(b.v-b.s))}</span></div>`+
+        hbars([{l:'Vendite',v:b.v,cls:'s1'},{l:'Spese',v:b.s,cls:'s2'}],eurF)).join('')}</div>`
+}
+
+// ESPORTAZIONE CSV (separatore ; e virgola decimale, come si aspetta Excel in italiano)
+const CSV_LIST=[['arnie','Arnie'],['regine','Regine'],['trattamenti','Trattamenti'],['ispezioni','Ispezioni'],['produzione','Produzione'],
+  ['nutrizione','Nutrizione'],['melari','Melari'],['spostamenti','Spostamenti'],['spese','Spese'],['vendite','Vendite']]
+function toCSV(rows){
+  const cols=[]
+  rows.forEach(r=>Object.keys(r).forEach(k=>{if(!cols.includes(k))cols.push(k)}))
+  const q=(k,v)=>{
+    if(v==null)return''
+    let s=Array.isArray(v)?v.join(', '):String(v)
+    if(NUM_F.includes(k)&&/^-?\d+(\.\d+)?$/.test(s))s=s.replace('.',',')
+    return/[;"\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s
+  }
+  return'﻿'+[cols.join(';'),...rows.map(r=>cols.map(k=>q(k,r[k])).join(';'))].join('\r\n')
+}
+function exportCSV(coll){
+  if(!db[coll].length){alert('Nessun dato da esportare');return}
+  exportFile(`apiario_${coll}_${today()}.csv`,toCSV(db[coll]),'text/csv')
+}
+
 function setOpt(k,v){
   const n=parseFloat(String(v).replace(',','.'))
   db.settings[k]=isNaN(n)||n<0?DEF_SETTINGS[k]:n;save();rImpostazioni()
 }
+function setTxt(k,v){db.settings[k]=String(v).trim();save()}
 function resetDismissed(){db.settings.dismissed={};save();alert('Promemoria ripristinati')}
 function rImpostazioni(){
-  ;['ispGiorni','varroaSoglia'].forEach(k=>{const i=document.getElementById('set-'+k);if(i)i.value=db.settings[k]})
+  ;['ispGiorni','varroaSoglia','varroaSogliaPct','apicoltore','codAzienda','codApiario'].forEach(k=>{const i=document.getElementById('set-'+k);if(i)i.value=db.settings[k]})
+  const cb=document.getElementById('csv-btns')
+  if(cb)cb.innerHTML=CSV_LIST.map(([c,l])=>`<button class="btn-sm" onclick="exportCSV('${c}')">${l} (${db[c].length})</button>`).join('')
   const bks=getAutoBackups()
   const el=document.getElementById('autobk-list')
   if(!el)return
@@ -683,10 +972,27 @@ function todoItems(){
   // varroa sopra soglia nell'ultima conta (degli ultimi 30 giorni)
   const vh=[]
   hives.forEach(a=>{
-    const lv=db.ispezioni.filter(i=>i.arniaId===a.id&&i.data&&i.varroa!==''&&i.varroa!=null).sort((x,z)=>z.data>x.data?1:-1)[0]
-    if(lv&&daysBetween(lv.data,T)<=30&&parseFloat(lv.varroa)>=st.varroaSoglia)vh.push({id:a.id,lbl:lv.varroa+'/24h'})
+    const lv=lastVarroa(a.id),vi=lv&&vInfo(lv)
+    if(vi&&daysBetween(lv.data,T)<=30&&vi.alarm)vh.push({id:a.id,lbl:vi.chip})
   })
-  if(vh.length)push('r','🦠','Varroa sopra soglia',`Caduta ≥ ${st.varroaSoglia}/24h nell'ultima conta`,{hives:vh})
+  if(vh.length)push('r','🦠','Varroa sopra soglia',`Ultima conta ≥ ${st.varroaSoglia}/24h o ≥ ${st.varroaSogliaPct}% di infestazione`,{hives:vh})
+
+  // melari presenti durante un trattamento: rischio residui nel miele
+  const mt=hives.filter(a=>melariSu(a.id)&&db.trattamenti.some(t=>(!t.arniaId||t.arniaId===a.id)&&trAttivo(t,T)))
+  if(mt.length)push('r','⚠️','Melari su arnie in trattamento','Togli i melari: il miele può contenere residui del farmaco',{hives:mt.map(a=>({id:a.id,lbl:melariSu(a.id)+' melari'}))})
+
+  // tempo di sospensione in corso: non smielare
+  db.trattamenti.forEach(t=>{
+    const fine=fineSosp(t)
+    if(fine&&t.dataInizio<=T&&T<fine)push('w','⏳',`Sospensione ${t.prodotto||'trattamento'}: non smielare`,`Fino al ${fmt(fine)} · ${t.arniaId||"Tutto l'apiario"}`,{edit:['trattamento',t.id]})
+  })
+
+  // nomadismo: comunicazione in BDA entro 7 giorni dallo spostamento
+  db.spostamenti.forEach(s=>{
+    if(s.bda==='Sì'||!s.data)return
+    const g=daysBetween(s.data,T)
+    if(g>=0&&g<=7)push(g>=5?'r':'w','🚚','Comunica lo spostamento in BDA',`${fmt(s.data)} → ${s.a||'?'} · ${(s.arnie||[]).length} arnie · entro il ${fmt(addDays(s.data,7))}`,{edit:['spostamento',s.id]})
+  })
 
   // trattamenti: fine imminente, appena finiti, in corso
   db.trattamenti.forEach(t=>{
@@ -772,6 +1078,7 @@ function rDash(){
         ${sb}
         <div class="dash-info-row">
           ${reg?qst(reg.annoIntro):bdg('No regina','neu')}
+          ${melariSu(a.id)?bdg('📦 '+melariSu(a.id),'neu'):''}
           ${lt?`<span style="font-size:.72rem;color:var(--text2)">${esc(lt.prodotto)}</span>`:''}
         </div>
         ${li?`<div style="font-size:.7rem;color:var(--text2);margin-top:2px">Isp. ${fmt(li.data)}</div>`:''}
@@ -856,6 +1163,7 @@ function rTratt(q=''){
           <div class="citem-sub">${esc(t.arniaId||'Tutto apiario')} · ${esc(t.prodotto)}</div>
           ${t.dose?`<div class="citem-sub">Dose: ${esc(t.dose)}</div>`:''}
           ${t.efficacia?`<div class="citem-sub">Efficacia: ${esc(t.efficacia)}%</div>`:''}
+          ${fineSosp(t)?`<div class="citem-sub">⏳ Sospensione fino al ${fmt(fineSosp(t))}</div>`:''}
         </div>
         <div class="citem-right">
           ${pb}
@@ -911,7 +1219,7 @@ function rIsp(q=''){
       <div class="citem">
         <div class="citem-left">
           <div class="citem-title">${fmt(i.data)} · ${esc(i.arniaId)}</div>
-          <div class="citem-sub" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${rg} ${fz} ${i.varroa?bdg('Varroa: '+i.varroa+'/24h','warn'):''}</div>
+          <div class="citem-sub" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${rg} ${fz} ${vbdg(i)}</div>
           ${i.problemi?`<div class="citem-sub" style="margin-top:4px">⚠️ ${esc(i.problemi)}</div>`:''}
           ${i.interventi?`<div class="citem-sub">✅ ${esc(i.interventi)}</div>`:''}
         </div>
@@ -1007,8 +1315,8 @@ function del(coll,id,sec){
   let msg='Eliminare?'
   if(coll==='arnie'){
     // i record collegati restano nello storico (produzione, trattamenti…)
-    const n=['regine','trattamenti','produzione','ispezioni'].reduce((s,c)=>s+db[c].filter(r=>r.arniaId===id).length,0)
-    if(n)msg=`Eliminare ${id}?\n\n${n} record collegati (regine, trattamenti, raccolte, ispezioni) resteranno nello storico.`
+    const n=LINKED.reduce((s,c)=>s+db[c].filter(r=>r.arniaId===id).length,0)
+    if(n)msg=`Eliminare ${id}?\n\n${n} record collegati (regine, trattamenti, raccolte, ispezioni…) resteranno nello storico.`
   }
   if(!confirm(msg))return
   db[coll]=db[coll].filter(r=>r.id!==id);save();render(sec)
@@ -1016,11 +1324,11 @@ function del(coll,id,sec){
 
 // MODAL
 // Select arnia con il valore del record preselezionato; all=true aggiunge "Tutto l'apiario"
-function asel(d,all=false){
-  const v=d.arniaId??''
+function asel(d,all=false,name='arniaId',allLbl="— Tutto l'apiario —"){
+  const v=d[name]??''
   const ids=db.arnie.map(a=>a.id)
   if(v&&!ids.includes(v))ids.push(v) // arnia eliminata: non perdere il riferimento
-  return`<select name="arniaId">${all?`<option value="">— Tutto l'apiario —</option>`:''}${
+  return`<select name="${name}">${all?`<option value="">${allLbl}</option>`:''}${
     ids.map(id=>`<option value="${esc(id)}"${id===v?' selected':''}>${esc(id)}</option>`).join('')}</select>`
 }
 function nextArniaId(){
@@ -1030,14 +1338,15 @@ function nextArniaId(){
   return aid(n)
 }
 // campo data principale per tipo: sui nuovi record viene pre-compilato con oggi
-const DATE_F={trattamento:'dataInizio',produzione:'data',ispezione:'data',spesa:'data',vendita:'data'}
+const DATE_F={trattamento:'dataInizio',produzione:'data',ispezione:'data',spesa:'data',vendita:'data',nutrizione:'data',melario:'dataPosa',spostamento:'data'}
+const TITLES={arnia:'arnia',regina:'regina',trattamento:'trattamento',produzione:'raccolta',ispezione:'ispezione',spesa:'spesa',vendita:'vendita',
+  nutrizione:'nutrizione',melario:'posa melari',spostamento:'spostamento'}
 function openM(type,id=null,preset={}){
   eType=type;eId=id
   const d=id?getRec(type,id):{...(DATE_F[type]?{[DATE_F[type]]:today()}:{}),...preset}
   // Pre-compila l'id suggerito per le nuove arnie
   if(type==='arnia'&&!id)d._suggestId=nextArniaId()
-  document.getElementById('m-title').textContent=(id?'Modifica ':type==='trattamento'?'Nuovo ':'Nuova ')+
-    ({arnia:'arnia',regina:'regina',trattamento:'trattamento',produzione:'raccolta',ispezione:'ispezione',spesa:'spesa',vendita:'vendita'}[type]||type)
+  document.getElementById('m-title').textContent=(id?'Modifica ':['trattamento','spostamento'].includes(type)?'Nuovo ':'Nuova ')+(TITLES[type]||type)
   document.getElementById('m-body').innerHTML=buildF(type,d)
   document.getElementById('overlay').classList.add('on')
 }
@@ -1083,9 +1392,11 @@ function buildF(type,d){
 
   if(type==='arnia') return wrap(
     fgrid(fg('N° Arnia',`<input type="text" name="id" value="${esc(d.id||d._suggestId||'')}" placeholder="es. Arnia 31">`)+fg('Tipo',fs('tipo',d,['Langstroth','Dadant','Lusitana','Top-bar','Arnietta portasciami','Altro'])))+
-    fg('Posizione / Apiario',fi('posizione',d))+
+    fg('Posizione / Apiario',fi('posizione',d).replace('<input','<input list="pos-list"')+dlist())+
     fgrid(fg('Data Installazione',fi('dataInst',d,'date'))+fg('N° Telaini',fi('telaini',d,'int')))+
     fgrid(fg('Colore Contrassegno',fi('colore',d))+fg('Stato',fs('stato',d,['Attiva','Inattiva','In osservazione','Sciamata','Morta'])))+
+    fgrid(fg('Origine',fs('origineTipo',d,['','Nucleo artificiale','Sciame naturale','Sciame catturato','Acquisto','Altro']))+
+      fg('Da arnia (madre)',asel(d,true,'origine','— nessuna —')))+
     fg('Note',ft('note',d)))
 
   if(type==='regina') return wrap(
@@ -1102,6 +1413,11 @@ function buildF(type,d){
       fg('Prodotto',fs('prodotto',d,['','Api-Bioxal (ossalico)','Api-Bioxal sublimazione','Apivar (amitraz)','Thymovar (timolo)','ApiLife Var','MAQS (formico)','Acido formico','Altro'])))+
     fgrid(fg('Principio Attivo',fi('principio',d))+fg('Dose / Modalità',fi('dose',d)))+
     fgrid(fg('Temperatura °C',fi('temp',d,'text','es. 18'))+fg('Efficacia %',fi('efficacia',d,'dec')))+
+    `<div class="citem-sub" style="margin:16px 0 8px;font-weight:600;color:var(--amber)">📋 Dati per il registro trattamenti</div>`+
+    fgrid(fg('N° ricetta (REV)',fi('ricetta',d))+fg('Veterinario',fi('veterinario',d)))+
+    fgrid(fg('Lotto farmaco',fi('lottoFarmaco',d))+fg('Scadenza farmaco',fi('scadFarmaco',d,'date')))+
+    fgrid(fg('Quantità somministrata',fi('qtaFarmaco',d,'text','es. 2 strisce/arnia'))+fg('N° arnie trattate',fi('nArnie',d,'int','auto')))+
+    fg('Tempo di sospensione (giorni)',fi('sospensione',d,'int','0 se nessuno'))+
     fg('Operatore',fi('operatore',d))+fg('Note',ft('note',d)))
 
   if(type==='produzione') return wrap(
@@ -1118,7 +1434,8 @@ function buildF(type,d){
     fgrid(fg('Uova',fseg('uova',d,['Sì','No','N/D'],'good'))+fg('Larve',fseg('larve',d,['Sì','No','N/D'],'good')))+
     fg('Covata',fseg('covata',d,['Regolare','Irregolare','Assente'],'good'))+
     fg('Sciamatura',fseg('sciamatura',d,['No','Celle reali','Sciame emesso'],'good').replace('data-v="No"','data-v="No" data-good'))+
-    fgrid(fg('Varroa caduta/24h',fi('varroa',d,'dec'))+fg('Operatore',fi('operatore',d)))+
+    fg('Conta varroa',fseg('varroaMetodo',d,['Caduta 24h','Zucchero a velo','Alcol','CO2']))+
+    fgrid(fg('Varroa (acari/24h o su 300 api)',fi('varroa',d,'dec'))+fg('Operatore',fi('operatore',d)))+
     fg('Problemi Rilevati',ft('problemi',d))+fg('Interventi Eseguiti',ft('interventi',d)))
 
   if(type==='spesa') return wrap(
@@ -1134,10 +1451,29 @@ function buildF(type,d){
     fgrid(fg('Prodotto',fs('prodotto',d,['','Miele','Propoli','Cera','Sciame','Nucleo','Pappa reale','Polline','Altro']))+fg('Quantità',fi('quantita',d,'text','es. 3 kg')))+
     fg('Note',ft('note',d)))
 
+  if(type==='nutrizione') return wrap(
+    fgrid(fg('Data',fi('data',d,'date'))+fg('Arnia / Apiario',asel(d,true)))+
+    fg('Tipo',fseg('tipo',d,['Sciroppo 1:1','Sciroppo 2:1','Candito','Pasta proteica','Altro']))+
+    fg('Quantità per arnia (kg o litri)',fi('qta',d,'dec','es. 1,5'))+
+    fg('Note',ft('note',d)))
+
+  if(type==='melario') return wrap(
+    fgrid(fg('Arnia',asel(d))+fg('N° melari',fi('numero',d,'int','1')))+
+    fgrid(fg('Data posa',fi('dataPosa',d,'date'))+fg('Data tolta',fi('dataTolta',d,'date')))+
+    fg('Note',ft('note',d)))
+
+  if(type==='spostamento') return wrap(dlist()+
+    fgrid(fg('Data',fi('data',d,'date'))+fg('Arnia',asel(d,true,'arniaId','— Tutte le arnie attive —')))+
+    fgrid(fg('Da (postazione)',fi('da',d,'text','tutte').replace('<input','<input list="pos-list"'))+fg('A (postazione)',fi('a',d).replace('<input','<input list="pos-list"')))+
+    fg('Motivo',fi('motivo',d,'text','es. fioritura acacia'))+
+    fg('Comunicato in BDA',fseg('bda',d,['Sì','No'],'good'))+
+    (d.arnie&&d.arnie.length?`<div class="citem-sub" style="margin-bottom:12px">Arnie spostate: ${d.arnie.map(esc).join(', ')}</div>`:'')+
+    fg('Note',ft('note',d)))
+
   return''
 }
 
-const NUM_F=['kg','umidita','importo','efficacia','varroa','temp','telaini','melari','annoNascita','annoIntro']
+const NUM_F=['kg','umidita','importo','efficacia','varroa','temp','telaini','melari','annoNascita','annoIntro','qta','numero','sospensione','nArnie']
 function submitF(e,type){
   e.preventDefault()
   const fd=new FormData(e.target),data={}
@@ -1149,13 +1485,31 @@ function submitF(e,type){
     if(!data.id){alert('Inserisci il numero/nome dell\'arnia');return}
     if(data.id!==eId&&db.arnie.some(a=>a.id===data.id)){alert(`Esiste già un'arnia "${data.id}"`);return}
   }
+  if(type==='spostamento'){
+    if(eId){
+      // in modifica le arnie restano quelle registrate; se cambia la destinazione
+      // si aggiornano quelle che sono ancora nella destinazione precedente
+      const old=getRec('spostamento',eId)
+      data.arnie=old.arnie||[]
+      if(data.a&&data.a!==old.a)db.arnie.forEach(x=>{if(data.arnie.includes(x.id)&&x.posizione===old.a)x.posizione=data.a})
+    }else{
+      // nuovo spostamento: sposta l'arnia scelta, o tutte le attive (solo quelle in "Da" se indicato)
+      const moved=data.arniaId?db.arnie.filter(a=>a.id===data.arniaId)
+        :db.arnie.filter(a=>isAlive(a)&&(!data.da||a.posizione===data.da))
+      if(!moved.length){alert('Nessuna arnia da spostare'+(data.da?` nella postazione "${data.da}"`:''));return}
+      if(data.a)moved.forEach(a=>{a.posizione=data.a})
+      data.arnie=moved.map(a=>a.id)
+    }
+  }
   if(eId){
     const i=db[coll].findIndex(r=>r.id===eId)
     if(i>=0){
       if(type==='arnia'){
         // rinomina: aggiorna i riferimenti in tutti i record collegati
         if(data.id!==eId){
-          ['regine','trattamenti','produzione','ispezioni'].forEach(c=>db[c].forEach(r=>{if(r.arniaId===eId)r.arniaId=data.id}))
+          LINKED.forEach(c=>db[c].forEach(r=>{if(r.arniaId===eId)r.arniaId=data.id}))
+          db.spostamenti.forEach(s=>{if(Array.isArray(s.arnie))s.arnie=s.arnie.map(x=>x===eId?data.id:x)})
+          db.arnie.forEach(a=>{if(a.origine===eId)a.origine=data.id})
           if(detId===eId)detId=data.id
         }
       }else data.id=eId
