@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Apiario — Supporto</title>
+<style>
+  body{font-family:-apple-system,system-ui,sans-serif;max-width:680px;margin:0 auto;
+       padding:24px;line-height:1.6;color:#3B1E04;background:#FFFBF0}
+  h1{color:#92400E;margin-bottom:.2em}h2{color:#92400E;font-size:1.1em;margin-top:1.6em}
+  nav{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px}
+  nav a{padding:6px 12px;border:1.5px solid #E8D5B0;border-radius:18px;text-decoration:none;color:#92400E;font-weight:600;font-size:.9em}
+  nav a.on{background:#92400E;border-color:#92400E;color:#FFFBF0}
+  section{border-top:1px solid #E8D5B0;margin-top:24px}
+  .js section{display:none}.js section.on{display:block;border-top:none;margin-top:0}
+  a{color:#92400E}
+</style>
+</head>
+<body>
+<h1>🐝 Apiario</h1>
+<nav id="langs">
+  <a href="#it" data-l="it">Italiano</a><a href="#en" data-l="en">English</a><a href="#es" data-l="es">Español</a>
+  <a href="#fr" data-l="fr">Français</a><a href="#de" data-l="de">Deutsch</a>
+</nav>
+
+<section id="it" lang="it">
+<h2>Supporto</h2>
+<p>Per domande, segnalazioni o suggerimenti scrivi a
+<a href="mailto:francesco.motta53@gmail.com">francesco.motta53@gmail.com</a>. Rispondo di solito entro pochi giorni.</p>
+<h2>Domande frequenti</h2>
+<p><b>I miei dati sono al sicuro?</b> Restano sul tuo dispositivo e, se attivo, nel tuo iCloud. Puoi esportare un
+backup da Altro → Impostazioni.</p>
+<p><b>Come sincronizzo iPhone, iPad e Mac?</b> Usa lo stesso Apple ID con iCloud attivo: le modifiche arrivano da sole.
+Lo stato è in Altro → Impostazioni → Sincronizzazione iCloud.</p>
+<p><b>Come cambio lingua, valuta o Paese?</b> In Altro → Impostazioni → Lingua e valuta.</p>
+<p><a href="privacy.html#it">Privacy policy</a></p>
+</section>
+
+<section id="en" lang="en">
+<h2>Support</h2>
+<p>For questions, bug reports or suggestions write to
+<a href="mailto:francesco.motta53@gmail.com">francesco.motta53@gmail.com</a>. I usually reply within a few days.</p>
+<h2>FAQ</h2>
+<p><b>Is my data safe?</b> It stays on your device and, if enabled, in your iCloud. You can export a backup from
+More → Settings.</p>
+<p><b>How do I sync iPhone, iPad and Mac?</b> Use the same Apple ID with iCloud turned on: changes arrive by themselves.
+Check the status in More → Settings → iCloud sync.</p>
+<p><b>How do I change language, currency or country?</b> In More → Settings → Language and currency.</p>
+<p><a href="privacy.html#en">Privacy policy</a></p>
+</section>
+
+<section id="es" lang="es">
+<h2>Soporte</h2>
+<p>Para preguntas, errores o sugerencias escribe a
+<a href="mailto:francesco.motta53@gmail.com">francesco.motta53@gmail.com</a>. Suelo responder en pocos días.</p>
+<h2>Preguntas frecuentes</h2>
+<p><b>¿Mis datos están seguros?</b> Se quedan en tu dispositivo y, si está activado, en tu iCloud. Puedes exportar una
+copia de seguridad desde Más → Ajustes.</p>
+<p><b>¿Cómo sincronizo iPhone, iPad y Mac?</b> Usa el mismo Apple ID con iCloud activado: los cambios llegan solos.
+El estado está en Más → Ajustes → Sincronización iCloud.</p>
+<p><b>¿Cómo cambio idioma, moneda o país?</b> En Más → Ajustes → Idioma y moneda.</p>
+<p><a href="privacy.html#es">Política de privacidad</a></p>
+</section>
+
+<section id="fr" lang="fr">
+<h2>Assistance</h2>
+<p>Pour toute question, bug ou suggestion, écrivez à
+<a href="mailto:francesco.motta53@gmail.com">francesco.motta53@gmail.com</a>. Je réponds en général sous quelques jours.</p>
+<h2>Questions fréquentes</h2>
+<p><b>Mes données sont-elles en sécurité ?</b> Elles restent sur votre appareil et, si activé, dans votre iCloud. Vous pouvez
+exporter une sauvegarde depuis Plus → Réglages.</p>
+<p><b>Comment synchroniser iPhone, iPad et Mac ?</b> Utilisez le même identifiant Apple avec iCloud activé : les
+modifications arrivent toutes seules. L'état est dans Plus → Réglages → Synchronisation iCloud.</p>
+<p><b>Comment changer langue, devise ou pays ?</b> Dans Plus → Réglages → Langue et devise.</p>
+<p><a href="privacy.html#fr">Politique de confidentialité</a></p>
+</section>
+
+<section id="de" lang="de">
+<h2>Support</h2>
+<p>Bei Fragen, Fehlern oder Vorschlägen schreib an
+<a href="mailto:francesco.motta53@gmail.com">francesco.motta53@gmail.com</a>. Ich antworte meist innerhalb weniger Tage.</p>
+<h2>Häufige Fragen</h2>
+<p><b>Sind meine Daten sicher?</b> Sie bleiben auf deinem Gerät und, wenn aktiviert, in deiner iCloud. Eine Sicherung
+kannst du unter Mehr → Einstellungen exportieren.</p>
+<p><b>Wie synchronisiere ich iPhone, iPad und Mac?</b> Mit derselben Apple-ID und aktivierter iCloud kommen Änderungen
+von selbst. Den Status siehst du unter Mehr → Einstellungen → iCloud-Synchronisierung.</p>
+<p><b>Wie ändere ich Sprache, Währung oder Land?</b> Unter Mehr → Einstellungen → Sprache und Währung.</p>
+<p><a href="privacy.html#de">Datenschutzerklärung</a></p>
+</section>
+
+<script>
+(function(){
+  var ok=['it','en','es','fr','de']
+  function pick(l){
+    document.body.classList.add('js')
+    ok.forEach(function(x){
+      document.getElementById(x).classList.toggle('on',x===l)
+      document.querySelector('[data-l="'+x+'"]').classList.toggle('on',x===l)
+    })
+    document.documentElement.lang=l
+  }
+  var h=location.hash.slice(1),n=(navigator.language||'it').slice(0,2)
+  pick(ok.indexOf(h)>=0?h:ok.indexOf(n)>=0?n:'it')
+  document.getElementById('langs').addEventListener('click',function(e){
+    var l=e.target.getAttribute('data-l');if(!l)return
+    e.preventDefault();history.replaceState(null,'','#'+l);pick(l)
+  })
+})()
+</script>
+</body>
+</html>
