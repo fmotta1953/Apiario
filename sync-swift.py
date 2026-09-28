@@ -6,7 +6,8 @@ Rimuove le parti che non hanno senso su file:// dentro WKWebView:
 - l'ultimo blocco <script> con registrazione service worker e check version.json
 
 Inietta il bridge nativo (no-op nella PWA in browser, guard esplicita):
-- save() inoltra il DB al nativo via webkit.messageHandlers.sync (iCloud)
+- syncPush() inoltra il DB al nativo via webkit.messageHandlers.sync (iCloud);
+  all'avvio unisce i dati locali con quelli di iCloud (window.__REMOTE_DB__)
 - exportFile() e stampa() passano al nativo (share sheet / stampa iOS)
 """
 from __future__ import annotations
@@ -33,7 +34,7 @@ def transform(html: str) -> str:
         sys.exit(f"ERRORE: blocco service-worker trovato {n} volte (atteso 1). Sync annullato.")
 
     # Inietta il bridge iCloud prima di </body>
-    for fn in ("save", "exportFile", "stampa"):
+    for fn in ("save", "syncPush", "syncMerge", "exportFile", "stampa"):
         if f"function {fn}(" not in html:
             sys.exit(f"ERRORE: {fn}() non trovata in index.html. Sync annullato.")
     html, n = re.subn(r"(?=</body>)", BRIDGE + "\n", html, count=1)
@@ -44,18 +45,18 @@ def transform(html: str) -> str:
 
 BRIDGE = """\
 <script>
-/* Bridge iCloud — iniettato da sync-swift.py, assente nella PWA */
+/* Bridge nativo — iniettato da sync-swift.py, assente nella PWA */
 (function(){
   if(!(window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.sync))return
   var h=webkit.messageHandlers
-  var _save=save
-  save=function(){
-    _save()
-    try{h.sync.postMessage(JSON.stringify(db))}catch(e){}
-  }
+  window.__NATIVE__=true
+  // save() chiama syncPush(): il nativo comprime e salva in iCloud
+  syncPush=function(){try{h.sync.postMessage(JSON.stringify(db))}catch(e){}}
   // WKWebView ignora download di blob e window.print(): li gestisce il nativo
   if(h.exportFile)exportFile=function(name,text){h.exportFile.postMessage({name:name,text:text})}
   if(h.print)stampa=function(){h.print.postMessage('')}
+  // Avvio: unisci con la copia in iCloud iniettata dal nativo (o inviala se iCloud è vuoto)
+  if(window.__REMOTE_DB__)syncMerge(window.__REMOTE_DB__);else syncPush()
 })()
 </script>"""
 

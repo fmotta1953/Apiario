@@ -259,7 +259,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 
 <div class="topbar" style="display:flex;align-items:center;justify-content:space-between">
   <h1>🐝 Gestione Apiario</h1>
-  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v15</span>
+  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v16</span>
 </div>
 
 <main>
@@ -463,6 +463,14 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
       </label>
     </div>
   </div>
+  <div class="clist" style="margin-top:12px;display:none" id="sync-panel">
+    <div class="citem" style="flex-direction:column;align-items:stretch;gap:2px;cursor:default">
+      <div class="citem-title">☁️ Sincronizzazione iCloud</div>
+      <div class="citem-sub">iPhone, iPad e Mac si scambiano le modifiche record per record</div>
+      <div id="sync-body" style="margin-top:6px"></div>
+      <button class="btn-sm" style="margin-top:6px" onclick="syncPush()">Sincronizza ora</button>
+    </div>
+  </div>
   <div class="clist" style="margin-top:12px">
     <div class="citem" style="flex-direction:column;align-items:flex-start;gap:6px;cursor:default">
       <div class="citem-title">🔔 Promemoria</div>
@@ -548,21 +556,110 @@ function load(){
   // Crea le 30 arnie di default solo al primo avvio (mai se esistono dati salvati,
   // anche con zero arnie: altrimenti si cancellerebbe tutto il resto)
   if(!found||!db||typeof db!=='object'){
-    db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[],spese:[],vendite:[]}
+    // _seeded: dati di esempio mai toccati, alla prima sincronizzazione vincono quelli di iCloud
+    db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[],spese:[],vendite:[],_seeded:true}
     for(let i=1;i<=30;i++)db.arnie.push({id:aid(i),tipo:'Langstroth',posizione:'',dataInst:'',colore:'',telaini:'',stato:'Attiva',note:''})
-    save()
+    ensureShape();persist()
   }
-  // retrocompatibilità: aggiungi array se mancanti
+  ensureShape()
+  snap=snapshot()
+}
+// retrocompatibilità: aggiungi array e impostazioni se mancanti
+function ensureShape(){
   Object.values(COLL).forEach(c=>{if(!Array.isArray(db[c]))db[c]=[]})
   db.settings={...DEF_SETTINGS,...(db.settings||{})}
   if(!db.settings.dismissed||typeof db.settings.dismissed!=='object')db.settings.dismissed={}
+  if(!db._deleted||typeof db._deleted!=='object')db._deleted={}
 }
-function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
+function save(){stampChanges();persist();syncPush()}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
+
+// ── SINCRONIZZAZIONE (app iPhone/iPad/Mac via iCloud; nel browser non fa nulla)
+// Ogni record porta _ts = ora dell'ultima modifica; un'eliminazione lascia una "lapide"
+// in db._deleted. Due copie si uniscono record per record e vince la modifica più
+// recente: così modifiche fatte offline su dispositivi diversi non si cancellano a vicenda.
+const TOMB_DAYS=180 // oltre, le lapidi vengono dimenticate
+let snap=null       // impronta dell'ultimo stato salvato, per capire cosa è cambiato
+function recSig(r){const{_ts,...rest}=r||{};return JSON.stringify(rest)}
+function snapshot(){
+  const s={_settings:recSig(db.settings)}
+  Object.values(COLL).forEach(c=>{s[c]={};db[c].forEach(r=>{s[c][r.id]=recSig(r)})})
+  return s
+}
+// Confronta con l'ultimo salvataggio: timbra i record cambiati, mette la lapide a quelli spariti
+function stampChanges(){
+  if(!snap){snap=snapshot();return}
+  const now=Date.now();let changed=false
+  Object.values(COLL).forEach(c=>{
+    const prev=snap[c]||{},seen=new Set(),tomb=db._deleted[c]=db._deleted[c]||{}
+    db[c].forEach(r=>{seen.add(r.id);if(prev[r.id]!==recSig(r)){r._ts=now;changed=true;delete tomb[r.id]}})
+    Object.keys(prev).forEach(id=>{if(!seen.has(id)){tomb[id]=now;changed=true}})
+    Object.keys(tomb).forEach(id=>{if(now-tomb[id]>TOMB_DAYS*864e5)delete tomb[id]})
+  })
+  if(recSig(db.settings)!==snap._settings){db.settings._ts=now;changed=true}
+  if(changed)delete db._seeded
+  snap=snapshot()
+}
+function mergeDb(a,b){
+  if(a._seeded&&!b._seeded)return JSON.parse(JSON.stringify(b)) // dispositivo nuovo: valgono i dati di iCloud
+  if(b._seeded&&!a._seeded)return a // arrivano solo i dati di esempio di un dispositivo nuovo: ignorali
+  const out={...a,_deleted:{}}
+  Object.values(COLL).forEach(c=>{
+    const tomb={...((a._deleted||{})[c]||{})}
+    Object.entries((b._deleted||{})[c]||{}).forEach(([id,t])=>{tomb[id]=Math.max(tomb[id]||0,t)})
+    const m=new Map()
+    ;[...(a[c]||[]),...(b[c]||[])].forEach(r=>{const o=m.get(r.id);if(!o||(r._ts||0)>(o._ts||0))m.set(r.id,r)})
+    out[c]=[...m.values()].filter(r=>!(tomb[r.id]&&tomb[r.id]>=(r._ts||0)))
+    out._deleted[c]=tomb
+  })
+  const sa=a.settings||{},sb=b.settings||{}
+  out.settings=(sb._ts||0)>(sa._ts||0)?sb:sa
+  return out
+}
+// Impronta di sincronizzazione: uguale ⇔ stesse versioni di tutti i record (l'ordine non conta)
+function syncSig(d){
+  return JSON.stringify([Object.values(COLL).map(c=>(d[c]||[]).map(r=>r.id+'@'+(r._ts||0)).sort()),
+    Object.values(COLL).map(c=>Object.entries((d._deleted||{})[c]||{}).map(e=>e.join('@')).sort()),
+    (d.settings||{})._ts||0,!!d._seeded])
+}
+// Dati arrivati da iCloud: unisci, e rimanda indietro solo se qui c'è qualcosa in più
+function syncMerge(json){
+  let remote;try{remote=typeof json==='string'?JSON.parse(json):json}catch(e){return}
+  if(!remote||typeof remote!=='object')return
+  const merged=mergeDb(db,remote)
+  if(syncSig(merged)!==syncSig(db)){autoBackup(10*6e4);db=merged;ensureShape();persist();snap=snapshot();render(curSec)}
+  if(syncSig(db)!==syncSig(remote))syncPush()
+  syncMark({recv:Date.now()})
+}
+function syncPush(){} // sostituita dal bridge nativo: invia db a iCloud
+const SYNC_KEY='apiario_sync'
+function syncState(){try{return JSON.parse(localStorage.getItem(SYNC_KEY)||'{}')}catch(e){return{}}}
+function syncMark(o){try{localStorage.setItem(SYNC_KEY,JSON.stringify({...syncState(),...o}))}catch(e){}
+  if(curSec==='impostazioni')rSyncPanel()}
+// chiamata dal nativo dopo ogni invio: spazio occupato in iCloud (limite 1 MB)
+function syncInfo(o){syncMark({...o,sent:Date.now()})}
+function syncWarn(msg){syncMark({err:msg});alert('⚠️ Sincronizzazione iCloud: '+msg)}
+function rSyncPanel(){
+  const el=document.getElementById('sync-panel');if(!el)return
+  if(!window.__NATIVE__){el.style.display='none';return}
+  el.style.display=''
+  const s=syncState(),t=ms=>ms?new Date(ms).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'
+  const kb=s.bytes?Math.round(s.bytes/1024):null,full=kb&&kb>800
+  document.getElementById('sync-body').innerHTML=`
+    <div class="set-row"><span class="citem-sub">iCloud</span><span>${window.__ICLOUD__===false?bdg('Non attivo','bad'):bdg('Attivo','ok')}</span></div>
+    <div class="set-row"><span class="citem-sub">Ultimo invio</span><span>${t(s.sent)}</span></div>
+    <div class="set-row"><span class="citem-sub">Ultima ricezione</span><span>${t(s.recv)}</span></div>
+    <div class="set-row"><span class="citem-sub">Spazio usato</span><span${full?' style="color:var(--red);font-weight:700"':''}>${kb!=null?kb+' KB su 1024':'—'}</span></div>
+    ${window.__ICLOUD__===false?`<div class="citem-sub" style="color:var(--red)">Accedi a iCloud nelle Impostazioni del dispositivo per sincronizzare.</div>`:''}
+    ${full?`<div class="citem-sub" style="color:var(--red)">Spazio quasi esaurito: esporta un backup e scrivimi.</div>`:''}
+    ${s.err?`<div class="citem-sub" style="color:var(--red)">Ultimo errore: ${esc(s.err)}</div>`:''}`
+}
 
 // AUTO-BACKUP in localStorage (ultimi 3 snapshot)
 const BK_KEY='apiario_autobk'
-function autoBackup(){
+function autoBackup(minGap=0){
   try{
+    if(minGap&&Date.now()-((getAutoBackups()[0]||{}).ts||0)<minGap)return
     const now=new Date()
     const label=now.toLocaleDateString('it-IT')+' '+now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})
     const bks=JSON.parse(localStorage.getItem(BK_KEY)||'[]')
@@ -579,7 +676,7 @@ function restoreAutoBackup(ts){
   const bk=bks.find(b=>b.ts===ts)
   if(!bk)return
   if(!confirm('Ripristinare il backup del '+bk.label+'?'))return
-  db=JSON.parse(bk.data);save();location.reload()
+  db=JSON.parse(bk.data);ensureShape();save();location.reload()
 }
 // Salva quando l'app va in background
 document.addEventListener('visibilitychange',()=>{if(document.hidden)autoBackup()})
@@ -602,7 +699,7 @@ function restoreData(input){
       const parsed=JSON.parse(e.target.result)
       if(!parsed.arnie||!parsed.regine)throw new Error('File non valido')
       if(!confirm('Sostituire tutti i dati attuali con il backup?'))return
-      db=parsed;save();location.reload()
+      db=parsed;ensureShape();save();location.reload()
     }catch(err){alert('Errore: file non valido o corrotto')}
   }
   r.readAsText(file)
@@ -941,6 +1038,7 @@ function setOpt(k,v){
 function setTxt(k,v){db.settings[k]=String(v).trim();save()}
 function resetDismissed(){db.settings.dismissed={};save();alert('Promemoria ripristinati')}
 function rImpostazioni(){
+  rSyncPanel()
   ;['ispGiorni','varroaSoglia','varroaSogliaPct','apicoltore','codAzienda','codApiario'].forEach(k=>{const i=document.getElementById('set-'+k);if(i)i.value=db.settings[k]})
   const cb=document.getElementById('csv-btns')
   if(cb)cb.innerHTML=CSV_LIST.map(([c,l])=>`<button class="btn-sm" onclick="exportCSV('${c}')">${l} (${db[c].length})</button>`).join('')
