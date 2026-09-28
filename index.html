@@ -166,7 +166,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 
 /* ── PULSANTI A SEGMENTI (form ispezione) ── */
 .seg{display:flex;gap:6px;flex-wrap:wrap}
-.seg button{flex:1 1 0;min-width:48px;min-height:48px;padding:8px 6px;border:1.5px solid var(--sep);
+.seg button{flex:1 1 0;min-width:48px;min-height:48px;padding:8px 6px;hyphens:auto;-webkit-hyphens:auto;overflow-wrap:anywhere;border:1.5px solid var(--sep);
   border-radius:12px;background:var(--honey);color:var(--text);font-size:.95rem;font-weight:600;cursor:pointer}
 .seg button.on{background:var(--amber);border-color:var(--amber);color:var(--white)}
 .seg.good button.on[data-v="Sì"],.seg.good button.on[data-v="Regolare"],.seg.good button.on[data-v="No"][data-good]{background:var(--green);border-color:var(--green)}
@@ -325,7 +325,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 
 <div class="topbar" style="display:flex;align-items:center;justify-content:space-between">
   <h1>🐝 Gestione Apiario</h1>
-  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v18</span>
+  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v19</span>
 </div>
 
 <main>
@@ -506,7 +506,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 
 <!-- ALTRO: sezioni meno usate sul campo -->
 <div id="s-altro" class="sec">
-  <div class="sec-hdr"><h2>Altro</h2></div>
+  <div class="sec-hdr"><h2 data-t="Altro (menu)">Altro</h2></div>
   <div class="menu-grid" id="altro-grid"></div>
 </div>
 
@@ -524,6 +524,17 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 <!-- IMPOSTAZIONI -->
 <div id="s-impostazioni" class="sec">
   <div class="sec-hdr"><h2>Impostazioni</h2></div>
+  <div class="clist">
+    <div class="citem" style="flex-direction:column;align-items:stretch;gap:4px;cursor:default">
+      <div class="citem-title">🌐 Lingua e valuta</div>
+      <div class="set-row"><span class="citem-sub">Lingua (su questo dispositivo)</span><select id="set-lang" class="yr-sel" onchange="setLang(this.value)"></select></div>
+      <div class="set-row"><span class="citem-sub">Valuta</span><select id="set-valuta" class="yr-sel" onchange="setValuta(this.value)"></select></div>
+      <div class="set-row"><span class="citem-sub">Paese</span><select id="set-paese" class="yr-sel" onchange="setPaese(this.value)"></select></div>
+      <div class="set-row"><span class="citem-sub">Unità di peso</span><select id="set-unita" class="yr-sel" onchange="setUnita(this.value)"></select></div>
+      <div class="citem-sub">Cambiare valuta non converte gli importi già inseriti. Il Paese regola stagioni dei trattamenti, farmaci proposti e adempimenti (BDA solo per l'Italia).</div>
+    </div>
+  </div>
+  <div style="height:12px"></div>
   <div class="clist">
     <div class="citem" style="flex-direction:column;align-items:flex-start;gap:6px">
       <div class="citem-title">💾 Backup dati</div>
@@ -570,7 +581,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
         <input id="set-apicoltore" onchange="setTxt('apicoltore',this.value)"></div>
       <div class="fgrid" style="width:100%">
         <div class="fgrp" style="margin:0"><label>Codice aziendale</label><input id="set-codAzienda" onchange="setTxt('codAzienda',this.value)"></div>
-        <div class="fgrp" style="margin:0"><label>Codice apiario BDA</label><input id="set-codApiario" onchange="setTxt('codApiario',this.value)"></div>
+        <div class="fgrp" style="margin:0"><label id="lbl-codApiario">Codice apiario BDA</label><input id="set-codApiario" onchange="setTxt('codApiario',this.value)"></div>
       </div>
     </div>
   </div>
@@ -601,7 +612,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   <button id="nav-trattamenti" onclick="go('trattamenti')">
     <span class="bico">💊</span><span class="blbl">Trattamenti</span></button>
   <button id="nav-altro" onclick="go('altro')">
-    <span class="bico">☰</span><span class="blbl">Altro</span></button>
+    <span class="bico">☰</span><span class="blbl" data-t="Altro (menu)">Altro</span></button>
 </nav>
 
 <!-- MODAL -->
@@ -617,10 +628,3344 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 </div>
 
 <script>
+// ── LINGUA E VALUTA
+// L'interfaccia è scritta in italiano. In un'altra lingua ogni testo mostrato viene tradotto al volo
+// (dizionario I18N + modelli con segnaposto I18P, anche dentro messaggi e finestre). I dati salvati
+// restano in italiano, così dispositivi con lingue diverse restano compatibili.
+const LANGS={it:'Italiano',en:'English',es:'Español',fr:'Français',de:'Deutsch'}
+const LI={en:0,es:1,fr:2,de:3}
+const LOCALES={it:'it-IT',en:'en-GB',es:'es-ES',fr:'fr-FR',de:'de-DE'}
+const LANG_KEY='apiario_lang'
+const NAV_LANG=typeof navigator!=='undefined'&&navigator.language?navigator.language:''
+const LANG=(()=>{try{const s=localStorage.getItem(LANG_KEY);if(s&&LANGS[s])return s}catch(e){}
+  const n=NAV_LANG.slice(0,2).toLowerCase();return LANGS[n]?n:'it'})()
+// date e numeri: formato del dispositivo se è della stessa lingua (es. en-US), altrimenti quello standard
+const LOC=NAV_LANG.toLowerCase().startsWith(LANG)?NAV_LANG:LOCALES[LANG]
+const DEC=(1.5).toLocaleString(LOC).includes(',')?',':'.'
+const VALUTE=['EUR','USD','GBP','CHF','CAD','AUD','SEK','NOK','DKK','PLN','CZK','HUF','RON','MXN','BRL']
+function curCode(){return(typeof db!=='undefined'&&db&&db.settings&&db.settings.valuta)||'EUR'}
+function curSym(c=curCode()){try{return(0).toLocaleString(LOC,{style:'currency',currency:c,currencyDisplay:'narrowSymbol'}).replace(/[\d\s.,  ]/g,'')}catch(e){return c}}
+function curName(c){try{return new Intl.DisplayNames([LOC],{type:'currency'}).of(c)}catch(e){return c}}
+function setLang(l){try{localStorage.setItem(LANG_KEY,l)}catch(e){};location.reload()}
+// Paese: emisfero (stagioni dei trattamenti), unità di peso predefinita, elenco farmaci, funzioni della
+// normativa italiana (BDA, ricetta REV). È un'impostazione dell'archivio, uguale su tutti i dispositivi.
+const PAESI={IT:['N','kg','EU'],ES:['N','kg','EU'],FR:['N','kg','EU'],DE:['N','kg','EU'],AT:['N','kg','EU'],CH:['N','kg','EU'],
+  BE:['N','kg','EU'],NL:['N','kg','EU'],PT:['N','kg','EU'],GB:['N','kg','EU'],IE:['N','kg','EU'],US:['N','lb','AM'],CA:['N','kg','AM'],
+  MX:['N','kg','AM'],AR:['S','kg','AM'],BR:['S','kg','AM'],CL:['S','kg','AM'],UY:['S','kg','AM'],ZA:['S','kg','EU'],AU:['S','kg','OC'],NZ:['S','kg','OC'],ZZ:['N','kg','EU']}
+function paeseDefault(){const r=(NAV_LANG.split('-')[1]||'').toUpperCase();return PAESI[r]?r:LANG==='it'?'IT':'ZZ'}
+function paese(){const p=typeof db!=='undefined'&&db&&db.settings&&db.settings.paese;return PAESI[p]?p:paeseDefault()}
+const isIT=()=>paese()==='IT'
+const isSouth=()=>PAESI[paese()][0]==='S'
+function paeseName(c){if(c==='ZZ')return t('Altro Paese');try{return new Intl.DisplayNames([LOC],{type:'region'}).of(c)}catch(e){return c}}
+function setPaese(c){db.settings.paese=c;db.settings.unita=PAESI[c][1];save();rImpostazioni()}
+function setUnita(u){db.settings.unita=u;save();location.reload()}
+// Peso: nell'archivio sempre in kg; in libbre solo per mostrarlo e inserirlo
+const LB=0.45359237
+const U=()=>(typeof db!=='undefined'&&db&&db.settings&&db.settings.unita)==='lb'?'lb':'kg'
+const KGU=()=>U()==='lb'?LB:1                              // kg per unità scelta
+function toU(kg){return(+kg||0)/KGU()}                      // kg → unità scelta
+function fromU(v){return num(v)*KGU()}                      // unità scelta → kg
+function nfw(kg,dec=1){return nf(toU(kg),dec)}              // numero di kg mostrato nell'unità scelta
+function uStr(kg){if(kg===''||kg==null)return'';const v=toU(kg);return itNum(String(Math.round(v*1000)/1000))}
+// Testi mostrati: se l'unità è la libbra, converte "12,5 kg", "€ 7/kg" e le etichette "(kg)"
+function unitText(s){
+  if(U()!=='lb'||!/kg/i.test(s))return s
+  const G=DEC===','?'.':',',pn=x=>parseFloat(x.split(G).join('').replace(DEC,'.'))
+  const f=(n,dec)=>n.toLocaleString(LOC,{minimumFractionDigits:0,maximumFractionDigits:dec})
+  return s.replace(/(\d[\d.,  ]*)([^\d\s/]{0,3}\s?[^\d\s/]{0,3})\/kg\b/g,(m,n,c)=>f(pn(n)*LB,2)+c+'/lb')
+    .replace(/(-?\d[\d.,]*)(\s?)kg\b/g,(m,n,sp)=>f(pn(n)/LB,1)+sp+'lb')
+    .replace(/\bkg\b/gi,'lb')
+}
+function setValuta(c){db.settings.valuta=c;save();rImpostazioni()}
+const I18N={
+"Dashboard": [
+"Dashboard",
+"Panel",
+"Tableau de bord",
+"Übersicht"
+],
+"Arnie": [
+"Hives",
+"Colmenas",
+"Ruches",
+"Völker"
+],
+"Ispezioni": [
+"Inspections",
+"Inspecciones",
+"Visites",
+"Durchsichten"
+],
+"Trattamenti": [
+"Treatments",
+"Tratamientos",
+"Traitements",
+"Behandlungen"
+],
+"Altro (menu)": [
+"More",
+"Más",
+"Plus",
+"Mehr"
+],
+"Altro": [
+"Other",
+"Otro",
+"Autre",
+"Andere"
+],
+"Regine": [
+"Queens",
+"Reinas",
+"Reines",
+"Königinnen"
+],
+"Produzione": [
+"Production",
+"Producción",
+"Production",
+"Produktion"
+],
+"Melari": [
+"Supers",
+"Alzas",
+"Hausses",
+"Honigräume"
+],
+"Nutrizione": [
+"Feeding",
+"Alimentación",
+"Nourrissement",
+"Fütterung"
+],
+"Nomadismo": [
+"Migratory beekeeping",
+"Trashumancia",
+"Transhumance",
+"Wanderimkerei"
+],
+"Statistiche": [
+"Statistics",
+"Estadísticas",
+"Statistiques",
+"Statistik"
+],
+"Economia": [
+"Finances",
+"Economía",
+"Finances",
+"Finanzen"
+],
+"Impostazioni": [
+"Settings",
+"Ajustes",
+"Réglages",
+"Einstellungen"
+],
+"Gestione Apiario": [
+"Apiary Manager",
+"Gestión del colmenar",
+"Gestion du rucher",
+"Bienenstand-Verwaltung"
+],
+"Da fare": [
+"To do",
+"Pendiente",
+"À faire",
+"Zu erledigen"
+],
+"Situazione Arnie": [
+"Hive overview",
+"Estado de las colmenas",
+"État des ruches",
+"Völkerübersicht"
+],
+"Stampa": [
+"Print",
+"Imprimir",
+"Imprimer",
+"Drucken"
+],
+"Nuova": [
+"New",
+"Nueva",
+"Nouvelle",
+"Neu"
+],
+"Nuovo": [
+"New",
+"Nuevo",
+"Nouveau",
+"Neu"
+],
+"Cerca…": [
+"Search…",
+"Buscar…",
+"Rechercher…",
+"Suchen…"
+],
+"Raccolta": [
+"Harvest",
+"Cosecha",
+"Récolte",
+"Ernte"
+],
+"Posa": [
+"Add",
+"Colocar",
+"Poser",
+"Aufsetzen"
+],
+"Spostamento": [
+"Move",
+"Traslado",
+"Déplacement",
+"Umsetzen"
+],
+"Spostamenti": [
+"Moves",
+"Traslados",
+"Déplacements",
+"Umsetzungen"
+],
+"Vendita": [
+"Sale",
+"Venta",
+"Vente",
+"Verkauf"
+],
+"Vendite": [
+"Sales",
+"Ventas",
+"Ventes",
+"Verkäufe"
+],
+"Spesa": [
+"Expense",
+"Gasto",
+"Dépense",
+"Ausgabe"
+],
+"Spese": [
+"Expenses",
+"Gastos",
+"Dépenses",
+"Ausgaben"
+],
+"Cliente": [
+"Customer",
+"Cliente",
+"Client",
+"Kunde"
+],
+"Clienti": [
+"Customers",
+"Clientes",
+"Clients",
+"Kunden"
+],
+"Formato": [
+"Size",
+"Formato",
+"Format",
+"Größe"
+],
+"Aggiungi prodotto": [
+"Add product",
+"Añadir producto",
+"Ajouter un produit",
+"Produkt hinzufügen"
+],
+"Registro": [
+"Register",
+"Registro",
+"Registre",
+"Register"
+],
+"Indietro": [
+"Back",
+"Atrás",
+"Retour",
+"Zurück"
+],
+"Arnie attive": [
+"Active hives",
+"Colmenas activas",
+"Ruches actives",
+"Aktive Völker"
+],
+"Regine valide": [
+"Valid queens",
+"Reinas válidas",
+"Reines valides",
+"Gültige Königinnen"
+],
+"Da rinnovare": [
+"To replace",
+"Por renovar",
+"À remplacer",
+"Zu erneuern"
+],
+"Trattam. mese": [
+"Treatm. this month",
+"Trat. del mes",
+"Trait. du mois",
+"Beh. im Monat"
+],
+"No regina": [
+"No queen",
+"Sin reina",
+"Sans reine",
+"Keine Königin"
+],
+"Valida": [
+"Valid",
+"Válida",
+"Valide",
+"Gültig"
+],
+"N/D": [
+"N/A",
+"N/D",
+"N/D",
+"k. A."
+],
+"Nessun dato": [
+"No data",
+"Sin datos",
+"Aucune donnée",
+"Keine Daten"
+],
+"Niente da fare al momento": [
+"Nothing to do right now",
+"Nada pendiente por ahora",
+"Rien à faire pour le moment",
+"Im Moment nichts zu tun"
+],
+"Nascondi": [
+"Hide",
+"Ocultar",
+"Masquer",
+"Ausblenden"
+],
+"Fatto": [
+"Done",
+"Hecho",
+"Fait",
+"Erledigt"
+],
+"mai": [
+"never",
+"nunca",
+"jamais",
+"nie"
+],
+"Attiva": [
+"Active",
+"Activa",
+"Active",
+"Aktiv"
+],
+"Inattiva": [
+"Inactive",
+"Inactiva",
+"Inactive",
+"Inaktiv"
+],
+"In osservazione": [
+"Under observation",
+"En observación",
+"En observation",
+"In Beobachtung"
+],
+"Sciamata": [
+"Swarmed",
+"Enjambrada",
+"Essaimée",
+"Geschwärmt"
+],
+"Morta": [
+"Dead",
+"Muerta",
+"Morte",
+"Tot"
+],
+"Arnietta portasciami": [
+"Nuc box",
+"Nucleero",
+"Ruchette",
+"Ablegerkasten"
+],
+"N° Arnia": [
+"Hive no.",
+"N.º de colmena",
+"N° de ruche",
+"Beute Nr."
+],
+"Tipo": [
+"Type",
+"Tipo",
+"Type",
+"Typ"
+],
+"Posizione / Apiario": [
+"Location / Apiary",
+"Ubicación / Colmenar",
+"Emplacement / Rucher",
+"Standort / Bienenstand"
+],
+"Data Installazione": [
+"Installation date",
+"Fecha de instalación",
+"Date d'installation",
+"Aufstelldatum"
+],
+"N° Telaini": [
+"No. of frames",
+"N.º de cuadros",
+"Nb de cadres",
+"Anzahl Rähmchen"
+],
+"Colore Contrassegno": [
+"Marker colour",
+"Color de marca",
+"Couleur de repère",
+"Markierungsfarbe"
+],
+"Stato": [
+"Status",
+"Estado",
+"État",
+"Status"
+],
+"Origine": [
+"Origin",
+"Origen",
+"Origine",
+"Herkunft"
+],
+"Da arnia (madre)": [
+"From hive (mother)",
+"De colmena (madre)",
+"De la ruche (mère)",
+"Aus Volk (Mutter)"
+],
+"Note": [
+"Notes",
+"Notas",
+"Notes",
+"Notizen"
+],
+"Salva": [
+"Save",
+"Guardar",
+"Enregistrer",
+"Speichern"
+],
+"— nessuna —": [
+"— none —",
+"— ninguna —",
+"— aucune —",
+"— keine —"
+],
+"— seleziona —": [
+"— select —",
+"— seleccionar —",
+"— choisir —",
+"— auswählen —"
+],
+"— Tutto l'apiario —": [
+"— Whole apiary —",
+"— Todo el colmenar —",
+"— Tout le rucher —",
+"— Ganzer Stand —"
+],
+"— Tutte le arnie attive —": [
+"— All active hives —",
+"— Todas las colmenas activas —",
+"— Toutes les ruches actives —",
+"— Alle aktiven Völker —"
+],
+"Nucleo artificiale": [
+"Artificial split",
+"Núcleo artificial",
+"Essaim artificiel",
+"Kunstschwarm"
+],
+"Sciame naturale": [
+"Natural swarm",
+"Enjambre natural",
+"Essaim naturel",
+"Naturschwarm"
+],
+"Sciame catturato": [
+"Caught swarm",
+"Enjambre capturado",
+"Essaim capturé",
+"Eingefangener Schwarm"
+],
+"Acquisto": [
+"Purchase",
+"Compra",
+"Achat",
+"Kauf"
+],
+"Arnia": [
+"Hive",
+"Colmena",
+"Ruche",
+"Volk"
+],
+"Anno Nascita": [
+"Year of birth",
+"Año de nacimiento",
+"Année de naissance",
+"Geburtsjahr"
+],
+"Anno Introduzione": [
+"Year introduced",
+"Año de introducción",
+"Année d'introduction",
+"Einweiselungsjahr"
+],
+"Razza": [
+"Breed",
+"Raza",
+"Race",
+"Rasse"
+],
+"Colore Marcatura": [
+"Marking colour",
+"Color de marcado",
+"Couleur de marquage",
+"Zeichenfarbe"
+],
+"Madre (arnia)": [
+"Mother (hive)",
+"Madre (colmena)",
+"Mère (ruche)",
+"Mutter (Volk)"
+],
+"facoltativo": [
+"optional",
+"opcional",
+"facultatif",
+"optional"
+],
+"Data Sostituzione": [
+"Replacement date",
+"Fecha de sustitución",
+"Date de remplacement",
+"Austauschdatum"
+],
+"Motivo": [
+"Reason",
+"Motivo",
+"Motif",
+"Grund"
+],
+"Ligustica": [
+"Ligustica (Italian)",
+"Ligustica (italiana)",
+"Ligustica (italienne)",
+"Ligustica (Italienerin)"
+],
+"Carnica": [
+"Carniolan",
+"Carniola",
+"Carnica",
+"Carnica"
+],
+"Locale": [
+"Local",
+"Local",
+"Locale",
+"Landbiene"
+],
+"Ape nera F0": [
+"Black bee F0",
+"Abeja negra F0",
+"Abeille noire F0",
+"Dunkle Biene F0"
+],
+"Ape nera F1": [
+"Black bee F1",
+"Abeja negra F1",
+"Abeille noire F1",
+"Dunkle Biene F1"
+],
+"Ibrido": [
+"Hybrid",
+"Híbrida",
+"Hybride",
+"Hybrid"
+],
+"Bianco": [
+"White",
+"Blanco",
+"Blanc",
+"Weiß"
+],
+"Giallo": [
+"Yellow",
+"Amarillo",
+"Jaune",
+"Gelb"
+],
+"Rosso": [
+"Red",
+"Rojo",
+"Rouge",
+"Rot"
+],
+"Verde": [
+"Green",
+"Verde",
+"Vert",
+"Grün"
+],
+"Blu": [
+"Blue",
+"Azul",
+"Bleu",
+"Blau"
+],
+"Data Inizio": [
+"Start date",
+"Fecha de inicio",
+"Date de début",
+"Beginn"
+],
+"Data Fine": [
+"End date",
+"Fecha de fin",
+"Date de fin",
+"Ende"
+],
+"Arnia / Apiario": [
+"Hive / Apiary",
+"Colmena / Colmenar",
+"Ruche / Rucher",
+"Volk / Stand"
+],
+"Patologia": [
+"Disease",
+"Patología",
+"Pathologie",
+"Krankheit"
+],
+"Prodotto": [
+"Product",
+"Producto",
+"Produit",
+"Produkt"
+],
+"Principio Attivo": [
+"Active ingredient",
+"Principio activo",
+"Principe actif",
+"Wirkstoff"
+],
+"Principio attivo": [
+"Active ingredient",
+"Principio activo",
+"Principe actif",
+"Wirkstoff"
+],
+"Dose / Modalità": [
+"Dose / Method",
+"Dosis / Modo",
+"Dose / Mode",
+"Dosis / Art"
+],
+"Temperatura °C": [
+"Temperature °C",
+"Temperatura °C",
+"Température °C",
+"Temperatur °C"
+],
+"Efficacia %": [
+"Efficacy %",
+"Eficacia %",
+"Efficacité %",
+"Wirksamkeit %"
+],
+"Dati per il registro trattamenti": [
+"Treatment register data",
+"Datos para el registro de tratamientos",
+"Données pour le registre des traitements",
+"Angaben für das Behandlungsregister"
+],
+"N° ricetta (REV)": [
+"Prescription no. (REV)",
+"N.º de receta (REV)",
+"N° d’ordonnance (REV)",
+"Rezept-Nr. (REV)"
+],
+"Veterinario": [
+"Veterinarian",
+"Veterinario",
+"Vétérinaire",
+"Tierarzt"
+],
+"Lotto farmaco": [
+"Medicine batch",
+"Lote del medicamento",
+"Lot du médicament",
+"Arzneimittel-Charge"
+],
+"Scadenza farmaco": [
+"Medicine expiry",
+"Caducidad del medicamento",
+"Péremption du médicament",
+"Verfallsdatum"
+],
+"Quantità somministrata": [
+"Quantity given",
+"Cantidad administrada",
+"Quantité administrée",
+"Verabreichte Menge"
+],
+"N° arnie trattate": [
+"Hives treated",
+"Colmenas tratadas",
+"Ruches traitées",
+"Behandelte Völker"
+],
+"Tempo di sospensione (giorni)": [
+"Withdrawal period (days)",
+"Tiempo de espera (días)",
+"Délai d'attente (jours)",
+"Wartezeit (Tage)"
+],
+"0 se nessuno": [
+"0 if none",
+"0 si no hay",
+"0 si aucun",
+"0 wenn keine"
+],
+"Operatore": [
+"Operator",
+"Operador",
+"Opérateur",
+"Bearbeiter"
+],
+"Mal di maggio": [
+"May disease",
+"Mal de mayo",
+"Mal de mai",
+"Maikrankheit"
+],
+"Peste americana": [
+"American foulbrood",
+"Loque americana",
+"Loque américaine",
+"Amerikanische Faulbrut"
+],
+"Peste europea": [
+"European foulbrood",
+"Loque europea",
+"Loque européenne",
+"Europäische Faulbrut"
+],
+"Calcificazione": [
+"Chalkbrood",
+"Cría yesificada",
+"Couvain plâtré",
+"Kalkbrut"
+],
+"Aethina tumida": [
+"Small hive beetle",
+"Pequeño escarabajo de la colmena",
+"Petit coléoptère des ruches",
+"Kleiner Beutenkäfer"
+],
+"Acido formico": [
+"Formic acid",
+"Ácido fórmico",
+"Acide formique",
+"Ameisensäure"
+],
+"Acido ossalico": [
+"Oxalic acid",
+"Ácido oxálico",
+"Acide oxalique",
+"Oxalsäure"
+],
+"Data Raccolta": [
+"Harvest date",
+"Fecha de cosecha",
+"Date de récolte",
+"Erntedatum"
+],
+"Tipo Miele": [
+"Honey type",
+"Tipo de miel",
+"Type de miel",
+"Honigsorte"
+],
+"Tipo di miele": [
+"Honey type",
+"Tipo de miel",
+"Type de miel",
+"Honigsorte"
+],
+"Kg Raccolti": [
+"Kg harvested",
+"Kg cosechados",
+"Kg récoltés",
+"Geerntete kg"
+],
+"N° Melari": [
+"No. of supers",
+"N.º de alzas",
+"Nb de hausses",
+"Anzahl Honigräume"
+],
+"N° melari": [
+"No. of supers",
+"N.º de alzas",
+"Nb de hausses",
+"Anzahl Honigräume"
+],
+"Umidità %": [
+"Moisture %",
+"Humedad %",
+"Humidité %",
+"Wassergehalt %"
+],
+"Qualità": [
+"Quality",
+"Calidad",
+"Qualité",
+"Qualität"
+],
+"Lotto": [
+"Batch",
+"Lote",
+"Lot",
+"Charge"
+],
+"Millefiori": [
+"Wildflower",
+"Milflores",
+"Toutes fleurs",
+"Blütenhonig"
+],
+"Acacia": [
+"Acacia",
+"Acacia",
+"Acacia",
+"Akazienhonig"
+],
+"Castagno": [
+"Chestnut",
+"Castaño",
+"Châtaignier",
+"Kastanienhonig"
+],
+"Tiglio": [
+"Linden",
+"Tilo",
+"Tilleul",
+"Lindenhonig"
+],
+"Girasole": [
+"Sunflower",
+"Girasol",
+"Tournesol",
+"Sonnenblumenhonig"
+],
+"Agrumi": [
+"Citrus",
+"Cítricos",
+"Agrumes",
+"Zitrushonig"
+],
+"Eucalipto": [
+"Eucalyptus",
+"Eucalipto",
+"Eucalyptus",
+"Eukalyptushonig"
+],
+"Melata": [
+"Honeydew",
+"Mielada",
+"Miellat",
+"Honigtauhonig"
+],
+"Ottima": [
+"Excellent",
+"Excelente",
+"Excellente",
+"Ausgezeichnet"
+],
+"Buona": [
+"Good",
+"Buena",
+"Bonne",
+"Gut"
+],
+"Discreta": [
+"Fair",
+"Aceptable",
+"Correcte",
+"Mittel"
+],
+"Scartata": [
+"Discarded",
+"Descartada",
+"Écartée",
+"Verworfen"
+],
+"Data": [
+"Date",
+"Fecha",
+"Date",
+"Datum"
+],
+"Regina vista": [
+"Queen seen",
+"Reina vista",
+"Reine vue",
+"Königin gesehen"
+],
+"Forza (1-5)": [
+"Strength (1-5)",
+"Fuerza (1-5)",
+"Force (1-5)",
+"Stärke (1-5)"
+],
+"Uova": [
+"Eggs",
+"Huevos",
+"Œufs",
+"Eier"
+],
+"Larve": [
+"Larvae",
+"Larvas",
+"Larves",
+"Larven"
+],
+"Covata": [
+"Brood",
+"Cría",
+"Couvain",
+"Brut"
+],
+"Sciamatura": [
+"Swarming",
+"Enjambrazón",
+"Essaimage",
+"Schwarmtrieb"
+],
+"Conta varroa": [
+"Varroa count",
+"Conteo de varroa",
+"Comptage varroa",
+"Varroa-Zählung"
+],
+"Varroa (acari/24h o su 300 api)": [
+"Varroa (mites/24h or per 300 bees)",
+"Varroa (ácaros/24h o en 300 abejas)",
+"Varroa (acariens/24h ou sur 300 abeilles)",
+"Varroa (Milben/24h oder je 300 Bienen)"
+],
+"Problemi Rilevati": [
+"Problems found",
+"Problemas detectados",
+"Problèmes constatés",
+"Festgestellte Probleme"
+],
+"Interventi Eseguiti": [
+"Work done",
+"Intervenciones realizadas",
+"Interventions réalisées",
+"Durchgeführte Arbeiten"
+],
+"Sì": [
+"Yes",
+"Sí",
+"Oui",
+"Ja"
+],
+"No": [
+"No",
+"No",
+"Non",
+"Nein"
+],
+"Regolare": [
+"Regular",
+"Regular",
+"Régulier",
+"Geschlossen"
+],
+"Irregolare": [
+"Irregular",
+"Irregular",
+"Irrégulier",
+"Lückenhaft"
+],
+"Assente": [
+"Absent",
+"Ausente",
+"Absent",
+"Fehlt"
+],
+"Celle reali": [
+"Queen cells",
+"Celdas reales",
+"Cellules royales",
+"Weiselzellen"
+],
+"Sciame emesso": [
+"Swarm issued",
+"Enjambre salido",
+"Essaim parti",
+"Geschwärmt"
+],
+"Caduta 24h": [
+"Natural drop 24h",
+"Caída 24h",
+"Chute 24h",
+"Totenfall 24h"
+],
+"Zucchero a velo": [
+"Powdered sugar",
+"Azúcar glas",
+"Sucre glace",
+"Puderzucker"
+],
+"Alcol": [
+"Alcohol wash",
+"Alcohol",
+"Alcool",
+"Alkohol"
+],
+"Importo": [
+"Amount",
+"Importe",
+"Montant",
+"Betrag"
+],
+"Descrizione": [
+"Description",
+"Descripción",
+"Description",
+"Beschreibung"
+],
+"Categoria": [
+"Category",
+"Categoría",
+"Catégorie",
+"Kategorie"
+],
+"Fornitore": [
+"Supplier",
+"Proveedor",
+"Fournisseur",
+"Lieferant"
+],
+"Pagata": [
+"Paid",
+"Pagado",
+"Payée",
+"Bezahlt"
+],
+"Pagamento": [
+"Payment",
+"Pago",
+"Paiement",
+"Zahlung"
+],
+"Scadenza (se da pagare)": [
+"Due date (if unpaid)",
+"Vencimiento (si está pendiente)",
+"Échéance (si à payer)",
+"Fällig am (falls offen)"
+],
+"Attrezzatura": [
+"Equipment",
+"Equipo",
+"Matériel",
+"Ausrüstung"
+],
+"Arnie / Nuclei": [
+"Hives / Nucs",
+"Colmenas / Núcleos",
+"Ruches / Essaims",
+"Beuten / Ableger"
+],
+"Medicinali / Trattamenti": [
+"Medicines / Treatments",
+"Medicamentos / Tratamientos",
+"Médicaments / Traitements",
+"Arzneimittel / Behandlungen"
+],
+"Miele e vasetti": [
+"Honey and jars",
+"Miel y tarros",
+"Miel et pots",
+"Honig und Gläser"
+],
+"Etichette e confezioni": [
+"Labels and packaging",
+"Etiquetas y envases",
+"Étiquettes et emballages",
+"Etiketten und Verpackung"
+],
+"Analisi del miele": [
+"Honey analysis",
+"Análisis de miel",
+"Analyse du miel",
+"Honiganalyse"
+],
+"Trasporto": [
+"Transport",
+"Transporte",
+"Transport",
+"Transport"
+],
+"Assicurazione": [
+"Insurance",
+"Seguro",
+"Assurance",
+"Versicherung"
+],
+"Quote associative": [
+"Association fees",
+"Cuotas de asociación",
+"Cotisations",
+"Vereinsbeiträge"
+],
+"Formazione": [
+"Training",
+"Formación",
+"Formation",
+"Fortbildung"
+],
+"Contanti": [
+"Cash",
+"Efectivo",
+"Espèces",
+"Bar"
+],
+"Bonifico": [
+"Bank transfer",
+"Transferencia",
+"Virement",
+"Überweisung"
+],
+"Carta/POS": [
+"Card",
+"Tarjeta",
+"Carte",
+"Karte"
+],
+"Canale": [
+"Channel",
+"Canal",
+"Canal",
+"Vertriebsweg"
+],
+"Prodotti venduti": [
+"Products sold",
+"Productos vendidos",
+"Produits vendus",
+"Verkaufte Produkte"
+],
+"Q.tà": [
+"Qty",
+"Cant.",
+"Qté",
+"Menge"
+],
+"Prezzo": [
+"Price",
+"Precio",
+"Prix",
+"Preis"
+],
+"Rimuovi": [
+"Remove",
+"Quitar",
+"Retirer",
+"Entfernen"
+],
+"Sconto": [
+"Discount",
+"Descuento",
+"Remise",
+"Rabatt"
+],
+"Totale": [
+"Total",
+"Total",
+"Total",
+"Summe"
+],
+"Incassato": [
+"Collected",
+"Cobrado",
+"Encaissé",
+"Bezahlt"
+],
+"Incassata": [
+"Collected",
+"Cobrada",
+"Encaissée",
+"Bezahlt"
+],
+"Diretta": [
+"Direct",
+"Directa",
+"Directe",
+"Direkt"
+],
+"Mercato": [
+"Market",
+"Mercado",
+"Marché",
+"Markt"
+],
+"Negozio": [
+"Shop",
+"Tienda",
+"Magasin",
+"Laden"
+],
+"Omaggio/Autoconsumo": [
+"Gift / own use",
+"Regalo / autoconsumo",
+"Cadeau / autoconsommation",
+"Geschenk / Eigenbedarf"
+],
+"Miele": [
+"Honey",
+"Miel",
+"Miel",
+"Honig"
+],
+"miele": [
+"honey",
+"miel",
+"miel",
+"Honig"
+],
+"Propoli": [
+"Propolis",
+"Propóleo",
+"Propolis",
+"Propolis"
+],
+"Cera": [
+"Wax",
+"Cera",
+"Cire",
+"Wachs"
+],
+"Polline": [
+"Pollen",
+"Polen",
+"Pollen",
+"Pollen"
+],
+"Pappa reale": [
+"Royal jelly",
+"Jalea real",
+"Gelée royale",
+"Gelée royale"
+],
+"Sciame": [
+"Swarm",
+"Enjambre",
+"Essaim",
+"Schwarm"
+],
+"Nucleo": [
+"Nuc",
+"Núcleo",
+"Essaim",
+"Ableger"
+],
+"Regina": [
+"Queen",
+"Reina",
+"Reine",
+"Königin"
+],
+"Contributo": [
+"Grant",
+"Subvención",
+"Subvention",
+"Förderung"
+],
+"Sfuso (kg)": [
+"Bulk (kg)",
+"A granel (kg)",
+"Vrac (kg)",
+"Lose (kg)"
+],
+"Favo": [
+"Comb honey",
+"Panal",
+"Rayon",
+"Wabenhonig"
+],
+"Nome": [
+"Name",
+"Nombre",
+"Nom",
+"Name"
+],
+"Telefono": [
+"Phone",
+"Teléfono",
+"Téléphone",
+"Telefon"
+],
+"Email": [
+"Email",
+"Correo",
+"E-mail",
+"E-Mail"
+],
+"Indirizzo": [
+"Address",
+"Dirección",
+"Adresse",
+"Adresse"
+],
+"Acquisti": [
+"Purchases",
+"Compras",
+"Achats",
+"Käufe"
+],
+"Peso miele (kg)": [
+"Honey weight (kg)",
+"Peso de miel (kg)",
+"Poids de miel (kg)",
+"Honiggewicht (kg)"
+],
+"Tutti i tipi": [
+"All types",
+"Todos los tipos",
+"Tous les types",
+"Alle Sorten"
+],
+"Lascia \"Tutti i tipi\" per il prezzo base; aggiungi una voce con un tipo specifico (es. Acacia) se costa di più.": [
+"Leave \"All types\" for the base price; add an entry for a specific type (e.g. Acacia) if it costs more.",
+"Deja \"Todos los tipos\" para el precio base; añade una entrada con un tipo concreto (p. ej. Acacia) si cuesta más.",
+"Laissez « Tous les types » pour le prix de base ; ajoutez une ligne pour un type précis (ex. Acacia) s’il coûte plus cher.",
+"„Alle Sorten“ für den Grundpreis lassen; für eine teurere Sorte (z. B. Akazie) einen eigenen Eintrag anlegen."
+],
+"Quantità per arnia (kg o litri)": [
+"Quantity per hive (kg or litres)",
+"Cantidad por colmena (kg o litros)",
+"Quantité par ruche (kg ou litres)",
+"Menge pro Volk (kg oder Liter)"
+],
+"Sciroppo 1:1": [
+"Syrup 1:1",
+"Jarabe 1:1",
+"Sirop 1:1",
+"Sirup 1:1"
+],
+"Sciroppo 2:1": [
+"Syrup 2:1",
+"Jarabe 2:1",
+"Sirop 2:1",
+"Sirup 2:1"
+],
+"Candito": [
+"Fondant",
+"Candi",
+"Candi",
+"Futterteig"
+],
+"Pasta proteica": [
+"Protein patty",
+"Pasta proteica",
+"Galette protéinée",
+"Eiweißfutter"
+],
+"Data posa": [
+"Date added",
+"Fecha de colocación",
+"Date de pose",
+"Aufgesetzt am"
+],
+"Data tolta": [
+"Date removed",
+"Fecha de retirada",
+"Date de retrait",
+"Abgenommen am"
+],
+"Da (postazione)": [
+"From (site)",
+"Desde (ubicación)",
+"De (emplacement)",
+"Von (Standort)"
+],
+"A (postazione)": [
+"To (site)",
+"A (ubicación)",
+"Vers (emplacement)",
+"Nach (Standort)"
+],
+"tutte": [
+"all",
+"todas",
+"toutes",
+"alle"
+],
+"Comunicato in BDA": [
+"Reported to BDA",
+"Comunicado a la BDA",
+"Déclaré à la BDA",
+"An BDA gemeldet"
+],
+"Modifica arnia": [
+"Edit hive",
+"Editar colmena",
+"Modifier la ruche",
+"Volk bearbeiten"
+],
+"Nuova arnia": [
+"New hive",
+"Nueva colmena",
+"Nouvelle ruche",
+"Neues Volk"
+],
+"Modifica regina": [
+"Edit queen",
+"Editar reina",
+"Modifier la reine",
+"Königin bearbeiten"
+],
+"Nuova regina": [
+"New queen",
+"Nueva reina",
+"Nouvelle reine",
+"Neue Königin"
+],
+"Modifica trattamento": [
+"Edit treatment",
+"Editar tratamiento",
+"Modifier le traitement",
+"Behandlung bearbeiten"
+],
+"Nuovo trattamento": [
+"New treatment",
+"Nuevo tratamiento",
+"Nouveau traitement",
+"Neue Behandlung"
+],
+"Modifica raccolta": [
+"Edit harvest",
+"Editar cosecha",
+"Modifier la récolte",
+"Ernte bearbeiten"
+],
+"Nuova raccolta": [
+"New harvest",
+"Nueva cosecha",
+"Nouvelle récolte",
+"Neue Ernte"
+],
+"Modifica ispezione": [
+"Edit inspection",
+"Editar inspección",
+"Modifier la visite",
+"Durchsicht bearbeiten"
+],
+"Nuova ispezione": [
+"New inspection",
+"Nueva inspección",
+"Nouvelle visite",
+"Neue Durchsicht"
+],
+"Modifica spesa": [
+"Edit expense",
+"Editar gasto",
+"Modifier la dépense",
+"Ausgabe bearbeiten"
+],
+"Nuova spesa": [
+"New expense",
+"Nuevo gasto",
+"Nouvelle dépense",
+"Neue Ausgabe"
+],
+"Modifica vendita": [
+"Edit sale",
+"Editar venta",
+"Modifier la vente",
+"Verkauf bearbeiten"
+],
+"Nuova vendita": [
+"New sale",
+"Nueva venta",
+"Nouvelle vente",
+"Neuer Verkauf"
+],
+"Modifica nutrizione": [
+"Edit feeding",
+"Editar alimentación",
+"Modifier le nourrissement",
+"Fütterung bearbeiten"
+],
+"Nuova nutrizione": [
+"New feeding",
+"Nueva alimentación",
+"Nouveau nourrissement",
+"Neue Fütterung"
+],
+"Modifica posa melari": [
+"Edit supers",
+"Editar alzas",
+"Modifier les hausses",
+"Honigräume bearbeiten"
+],
+"Nuova posa melari": [
+"Add supers",
+"Colocar alzas",
+"Poser des hausses",
+"Honigräume aufsetzen"
+],
+"Modifica spostamento": [
+"Edit move",
+"Editar traslado",
+"Modifier le déplacement",
+"Umsetzung bearbeiten"
+],
+"Nuovo spostamento": [
+"New move",
+"Nuevo traslado",
+"Nouveau déplacement",
+"Neue Umsetzung"
+],
+"Modifica cliente": [
+"Edit customer",
+"Editar cliente",
+"Modifier le client",
+"Kunde bearbeiten"
+],
+"Nuovo cliente": [
+"New customer",
+"Nuevo cliente",
+"Nouveau client",
+"Neuer Kunde"
+],
+"Modifica voce di listino": [
+"Edit price",
+"Editar precio",
+"Modifier le tarif",
+"Preis bearbeiten"
+],
+"Nuova voce di listino": [
+"New price",
+"Nuevo precio",
+"Nouveau tarif",
+"Neuer Preis"
+],
+"Lingua e valuta": [
+"Language and currency",
+"Idioma y moneda",
+"Langue et devise",
+"Sprache und Währung"
+],
+"Lingua (su questo dispositivo)": [
+"Language (this device)",
+"Idioma (en este dispositivo)",
+"Langue (sur cet appareil)",
+"Sprache (auf diesem Gerät)"
+],
+"Valuta": [
+"Currency",
+"Moneda",
+"Devise",
+"Währung"
+],
+"Cambiare valuta non converte gli importi già inseriti": [
+"Changing currency does not convert amounts already entered",
+"Cambiar la moneda no convierte los importes ya introducidos",
+"Changer de devise ne convertit pas les montants déjà saisis",
+"Ein Währungswechsel rechnet bereits erfasste Beträge nicht um"
+],
+"Backup dati": [
+"Data backup",
+"Copia de seguridad",
+"Sauvegarde des données",
+"Datensicherung"
+],
+"Scarica un file JSON con tutti i tuoi dati": [
+"Download a JSON file with all your data",
+"Descarga un archivo JSON con todos tus datos",
+"Téléchargez un fichier JSON avec toutes vos données",
+"Eine JSON-Datei mit allen Daten herunterladen"
+],
+"Esporta backup": [
+"Export backup",
+"Exportar copia",
+"Exporter la sauvegarde",
+"Sicherung exportieren"
+],
+"Ripristino da file": [
+"Restore from file",
+"Restaurar desde archivo",
+"Restaurer depuis un fichier",
+"Aus Datei wiederherstellen"
+],
+"Carica un file di backup precedente. I dati attuali verranno sostituiti.": [
+"Load a previous backup file. Current data will be replaced.",
+"Carga una copia anterior. Los datos actuales se sustituirán.",
+"Chargez une sauvegarde précédente. Les données actuelles seront remplacées.",
+"Eine frühere Sicherung laden. Die aktuellen Daten werden ersetzt."
+],
+"Importa backup": [
+"Import backup",
+"Importar copia",
+"Importer une sauvegarde",
+"Sicherung importieren"
+],
+"Sincronizzazione iCloud": [
+"iCloud sync",
+"Sincronización iCloud",
+"Synchronisation iCloud",
+"iCloud-Synchronisierung"
+],
+"iPhone, iPad e Mac si scambiano le modifiche record per record": [
+"iPhone, iPad and Mac exchange changes record by record",
+"iPhone, iPad y Mac intercambian los cambios registro a registro",
+"iPhone, iPad et Mac échangent les modifications fiche par fiche",
+"iPhone, iPad und Mac tauschen Änderungen Eintrag für Eintrag aus"
+],
+"Attivo": [
+"On",
+"Activo",
+"Activé",
+"Aktiv"
+],
+"Non attivo": [
+"Off",
+"Inactivo",
+"Désactivé",
+"Inaktiv"
+],
+"Ultimo invio": [
+"Last sent",
+"Último envío",
+"Dernier envoi",
+"Zuletzt gesendet"
+],
+"Ultima ricezione": [
+"Last received",
+"Última recepción",
+"Dernière réception",
+"Zuletzt empfangen"
+],
+"Spazio usato": [
+"Space used",
+"Espacio usado",
+"Espace utilisé",
+"Belegter Speicher"
+],
+"Accedi a iCloud nelle Impostazioni del dispositivo per sincronizzare.": [
+"Sign in to iCloud in the device Settings to sync.",
+"Inicia sesión en iCloud en los Ajustes del dispositivo para sincronizar.",
+"Connectez-vous à iCloud dans les Réglages de l'appareil pour synchroniser.",
+"In den Geräteeinstellungen bei iCloud anmelden, um zu synchronisieren."
+],
+"Spazio quasi esaurito: esporta un backup e scrivimi.": [
+"Space almost full: export a backup.",
+"Espacio casi lleno: exporta una copia de seguridad.",
+"Espace presque plein : exportez une sauvegarde.",
+"Speicher fast voll: bitte eine Sicherung exportieren."
+],
+"Ultimo errore": [
+"Last error",
+"Último error",
+"Dernière erreur",
+"Letzter Fehler"
+],
+"Sincronizza ora": [
+"Sync now",
+"Sincronizar ahora",
+"Synchroniser",
+"Jetzt synchronisieren"
+],
+"Promemoria": [
+"Reminders",
+"Recordatorios",
+"Rappels",
+"Erinnerungen"
+],
+"Ispezionare ogni (giorni, 0 = mai)": [
+"Inspect every (days, 0 = never)",
+"Inspeccionar cada (días, 0 = nunca)",
+"Visiter tous les (jours, 0 = jamais)",
+"Durchsicht alle (Tage, 0 = nie)"
+],
+"Soglia allarme varroa (caduta/24h)": [
+"Varroa alarm threshold (drop/24h)",
+"Umbral de alarma varroa (caída/24h)",
+"Seuil d’alerte varroa (chute/24h)",
+"Varroa-Alarmschwelle (Fall/24h)"
+],
+"Soglia varroa con zucchero/alcol/CO₂ (% di infestazione)": [
+"Varroa threshold with sugar/alcohol/CO₂ (% infestation)",
+"Umbral varroa con azúcar/alcohol/CO₂ (% de infestación)",
+"Seuil varroa sucre/alcool/CO₂ (% d’infestation)",
+"Varroa-Schwelle Zucker/Alkohol/CO₂ (% Befall)"
+],
+"Avviso miele in esaurimento sotto (kg)": [
+"Low honey stock warning below (kg)",
+"Aviso de miel baja por debajo de (kg)",
+"Alerte stock de miel sous (kg)",
+"Warnung Honigvorrat unter (kg)"
+],
+"Mostra di nuovo i promemoria nascosti": [
+"Show hidden reminders again",
+"Mostrar de nuevo los recordatorios ocultos",
+"Réafficher les rappels masqués",
+"Ausgeblendete Erinnerungen wieder anzeigen"
+],
+"Dati azienda (per il registro trattamenti)": [
+"Business details (for the treatment register)",
+"Datos de la explotación (para el registro de tratamientos)",
+"Données de l'exploitation (pour le registre des traitements)",
+"Betriebsdaten (für das Behandlungsregister)"
+],
+"Apicoltore / Ragione sociale": [
+"Beekeeper / Company name",
+"Apicultor / Razón social",
+"Apiculteur / Raison sociale",
+"Imker / Firma"
+],
+"Codice aziendale": [
+"Holding code",
+"Código de explotación",
+"Code d'exploitation",
+"Betriebsnummer"
+],
+"Codice apiario BDA": [
+"BDA apiary code",
+"Código de colmenar BDA",
+"Code rucher BDA",
+"BDA-Standnummer"
+],
+"Esporta per Excel (CSV)": [
+"Export for Excel (CSV)",
+"Exportar para Excel (CSV)",
+"Exporter pour Excel (CSV)",
+"Export für Excel (CSV)"
+],
+"Un file per archivio, apribile con Excel o Numbers": [
+"One file per archive, opens in Excel or Numbers",
+"Un archivo por sección, se abre con Excel o Numbers",
+"Un fichier par archive, ouvrable avec Excel ou Numbers",
+"Eine Datei pro Bereich, öffnet in Excel oder Numbers"
+],
+"Backup automatici": [
+"Automatic backups",
+"Copias automáticas",
+"Sauvegardes automatiques",
+"Automatische Sicherungen"
+],
+"Salvati automaticamente ogni volta che esci dall'app (ultimi 3)": [
+"Saved automatically every time you leave the app (last 3)",
+"Se guardan automáticamente al salir de la app (últimas 3)",
+"Enregistrées automatiquement à chaque sortie de l’app (3 dernières)",
+"Automatisch beim Verlassen der App gespeichert (letzte 3)"
+],
+"Nessun backup automatico ancora — si crea alla prima chiusura dell'app": [
+"No automatic backup yet — one is created when you first leave the app",
+"Aún no hay copias automáticas — se crea al cerrar la app por primera vez",
+"Aucune sauvegarde automatique — elle sera créée à la première fermeture de l’app",
+"Noch keine automatische Sicherung — sie entsteht beim ersten Verlassen der App"
+],
+"Ripristina": [
+"Restore",
+"Restaurar",
+"Restaurer",
+"Wiederherstellen"
+],
+"Grafici per anno": [
+"Charts by year",
+"Gráficos por año",
+"Graphiques par année",
+"Diagramme pro Jahr"
+],
+"Backup, promemoria, CSV": [
+"Backup, reminders, CSV",
+"Copias, recordatorios, CSV",
+"Sauvegarde, rappels, CSV",
+"Sicherung, Erinnerungen, CSV"
+],
+"Ispezione": [
+"Inspection",
+"Inspección",
+"Visite",
+"Durchsicht"
+],
+"Trattamento": [
+"Treatment",
+"Tratamiento",
+"Traitement",
+"Behandlung"
+],
+"Sposta": [
+"Move",
+"Trasladar",
+"Déplacer",
+"Umsetzen"
+],
+"Tolti oggi": [
+"Removed today",
+"Retiradas hoy",
+"Retirées aujourd’hui",
+"Heute abgenommen"
+],
+"kg totali": [
+"kg total",
+"kg totales",
+"kg au total",
+"kg gesamt"
+],
+"giorni dall'ultima ispezione": [
+"days since last inspection",
+"días desde la última inspección",
+"jours depuis la dernière visite",
+"Tage seit der letzten Durchsicht"
+],
+"Nessuna ispezione": [
+"No inspections",
+"Ninguna inspección",
+"Aucune visite",
+"Keine Durchsicht"
+],
+"Nessuna regina registrata": [
+"No queen recorded",
+"Ninguna reina registrada",
+"Aucune reine enregistrée",
+"Keine Königin erfasst"
+],
+"Dati non inseriti": [
+"No data entered",
+"Sin datos",
+"Aucune donnée saisie",
+"Keine Angaben"
+],
+"Precedente": [
+"Previous",
+"Anterior",
+"Précédente",
+"Frühere"
+],
+"Storico": [
+"History",
+"Historial",
+"Historique",
+"Verlauf"
+],
+"Nessun evento registrato": [
+"No events recorded",
+"Ningún evento registrado",
+"Aucun événement enregistré",
+"Keine Einträge"
+],
+"Nuclei/sciami derivati:": [
+"Splits/swarms from this hive:",
+"Núcleos/enjambres derivados:",
+"Essaims issus de cette ruche :",
+"Ableger/Schwärme daraus:"
+],
+"Contrassegno": [
+"Marker",
+"Marca",
+"Repère",
+"Markierung"
+],
+"Madre": [
+"Mother",
+"Madre",
+"Mère",
+"Mutter"
+],
+"Marcatura": [
+"Marking",
+"Marcado",
+"Marquage",
+"Zeichen"
+],
+"Ancora sull'arnia": [
+"Still on the hive",
+"Todavía en la colmena",
+"Encore sur la ruche",
+"Noch auf dem Volk"
+],
+"comunicato in BDA": [
+"reported to BDA",
+"comunicado a la BDA",
+"déclaré à la BDA",
+"an BDA gemeldet"
+],
+"da comunicare in BDA": [
+"to report to BDA",
+"por comunicar a la BDA",
+"à déclarer à la BDA",
+"an BDA zu melden"
+],
+"Tutto l'apiario": [
+"Whole apiary",
+"Todo el colmenar",
+"Tout le rucher",
+"Ganzer Stand"
+],
+"Tutto apiario": [
+"Whole apiary",
+"Todo el colmenar",
+"Tout le rucher",
+"Ganzer Stand"
+],
+"Dose": [
+"Dose",
+"Dosis",
+"Dose",
+"Dosis"
+],
+"Efficacia": [
+"Efficacy",
+"Eficacia",
+"Efficacité",
+"Wirksamkeit"
+],
+"Umidità": [
+"Moisture",
+"Humedad",
+"Humidité",
+"Wassergehalt"
+],
+"Totale filtrato:": [
+"Filtered total:",
+"Total filtrado:",
+"Total filtré :",
+"Summe gefiltert:"
+],
+"Nessuna nutrizione registrata": [
+"No feeding recorded",
+"Ninguna alimentación registrada",
+"Aucun nourrissement enregistré",
+"Keine Fütterung erfasst"
+],
+"Melari sulle arnie": [
+"Supers on hives",
+"Alzas en las colmenas",
+"Hausses sur les ruches",
+"Honigräume auf den Völkern"
+],
+"Tolti": [
+"Removed",
+"Retiradas",
+"Retirées",
+"Abgenommen"
+],
+"Nessun melario registrato": [
+"No supers recorded",
+"Ninguna alza registrada",
+"Aucune hausse enregistrée",
+"Keine Honigräume erfasst"
+],
+"Da comunicare": [
+"To report",
+"Por comunicar",
+"À déclarer",
+"Zu melden"
+],
+"Nessuno spostamento registrato": [
+"No moves recorded",
+"Ningún traslado registrado",
+"Aucun déplacement enregistré",
+"Keine Umsetzungen erfasst"
+],
+"Nessuna arnia": [
+"No hives",
+"Ninguna colmena",
+"Aucune ruche",
+"Keine Völker"
+],
+"Nessun trattamento": [
+"No treatments",
+"Ningún tratamiento",
+"Aucun traitement",
+"Keine Behandlungen"
+],
+"Nessuna raccolta": [
+"No harvests",
+"Ninguna cosecha",
+"Aucune récolte",
+"Keine Ernten"
+],
+"Arnia non trovata": [
+"Hive not found",
+"Colmena no encontrada",
+"Ruche introuvable",
+"Volk nicht gefunden"
+],
+"Apicoltore": [
+"Beekeeper",
+"Apicultor",
+"Apiculteur",
+"Imker"
+],
+"Apiario BDA": [
+"BDA apiary",
+"Colmenar BDA",
+"Rucher BDA",
+"BDA-Stand"
+],
+"Completa i dati azienda in Altro → Impostazioni": [
+"Fill in business details in More → Settings",
+"Completa los datos de la explotación en Más → Ajustes",
+"Complétez les données de l'exploitation dans Plus → Réglages",
+"Betriebsdaten unter Mehr → Einstellungen ergänzen"
+],
+"N°": [
+"No.",
+"N.º",
+"N°",
+"Nr."
+],
+"Inizio": [
+"Start",
+"Inicio",
+"Début",
+"Beginn"
+],
+"Fine": [
+"End",
+"Fin",
+"Fin",
+"Ende"
+],
+"Arnie / apiario": [
+"Hives / apiary",
+"Colmenas / colmenar",
+"Ruches / rucher",
+"Völker / Stand"
+],
+"N° arnie": [
+"No. of hives",
+"N.º colmenas",
+"Nb de ruches",
+"Anz. Völker"
+],
+"Farmaco": [
+"Medicine",
+"Medicamento",
+"Médicament",
+"Arzneimittel"
+],
+"Scadenza": [
+"Expiry",
+"Caducidad",
+"Péremption",
+"Verfall"
+],
+"Quantità": [
+"Quantity",
+"Cantidad",
+"Quantité",
+"Menge"
+],
+"N° ricetta": [
+"Prescription no.",
+"N.º receta",
+"N° d’ordonnance",
+"Rezept-Nr."
+],
+"Sospensione": [
+"Withdrawal",
+"Espera",
+"Délai",
+"Wartezeit"
+],
+"Fine sospensione": [
+"Withdrawal end",
+"Fin de espera",
+"Fin du délai",
+"Ende Wartezeit"
+],
+"Firma": [
+"Signature",
+"Firma",
+"Signature",
+"Unterschrift"
+],
+"Miele raccolto per anno": [
+"Honey harvested per year",
+"Miel cosechada por año",
+"Miel récolté par an",
+"Honigernte pro Jahr"
+],
+"Miele per arnia": [
+"Honey per hive",
+"Miel por colmena",
+"Miel par ruche",
+"Honig pro Volk"
+],
+"tocca un'arnia per la scheda": [
+"tap a hive to open it",
+"toca una colmena para ver su ficha",
+"touchez une ruche pour sa fiche",
+"Volk antippen für Details"
+],
+"Bilancio per anno": [
+"Balance per year",
+"Balance por año",
+"Bilan par année",
+"Bilanz pro Jahr"
+],
+"Ancora nessun dato: registra raccolte, spese o vendite": [
+"No data yet: record harvests, expenses or sales",
+"Aún no hay datos: registra cosechas, gastos o ventas",
+"Pas encore de données : enregistrez récoltes, dépenses ou ventes",
+"Noch keine Daten: Ernten, Ausgaben oder Verkäufe erfassen"
+],
+"Riepilogo": [
+"Summary",
+"Resumen",
+"Résumé",
+"Übersicht"
+],
+"Listino": [
+"Price list",
+"Tarifas",
+"Tarifs",
+"Preisliste"
+],
+"Tutti gli anni": [
+"All years",
+"Todos los años",
+"Toutes les années",
+"Alle Jahre"
+],
+"Solo da incassare": [
+"Unpaid only",
+"Solo por cobrar",
+"Seulement à encaisser",
+"Nur offene"
+],
+"Solo da pagare": [
+"Unpaid only",
+"Solo por pagar",
+"Seulement à payer",
+"Nur offene"
+],
+"Cerca cliente, prodotto…": [
+"Search customer, product…",
+"Buscar cliente, producto…",
+"Rechercher client, produit…",
+"Kunde, Produkt suchen…"
+],
+"Cerca descrizione, fornitore…": [
+"Search description, supplier…",
+"Buscar descripción, proveedor…",
+"Rechercher description, fournisseur…",
+"Beschreibung, Lieferant suchen…"
+],
+"Cerca cliente…": [
+"Search customer…",
+"Buscar cliente…",
+"Rechercher un client…",
+"Kunde suchen…"
+],
+"Prezzi proposti in automatico nelle vendite": [
+"Prices suggested automatically in sales",
+"Precios sugeridos automáticamente en las ventas",
+"Prix proposés automatiquement dans les ventes",
+"Preise werden beim Verkauf vorgeschlagen"
+],
+"Entrate in totale": [
+"Total income",
+"Ingresos totales",
+"Recettes totales",
+"Einnahmen gesamt"
+],
+"Uscite in totale": [
+"Total expenses",
+"Gastos totales",
+"Dépenses totales",
+"Ausgaben gesamt"
+],
+"Utile in totale": [
+"Total profit",
+"Beneficio total",
+"Bénéfice total",
+"Gewinn gesamt"
+],
+"Perdita in totale": [
+"Total loss",
+"Pérdida total",
+"Perte totale",
+"Verlust gesamt"
+],
+"Indicatori in totale": [
+"Overall indicators",
+"Indicadores totales",
+"Indicateurs globaux",
+"Kennzahlen gesamt"
+],
+"Da incassare": [
+"To collect",
+"Por cobrar",
+"À encaisser",
+"Offene Forderungen"
+],
+"Da pagare": [
+"To pay",
+"Por pagar",
+"À payer",
+"Zu zahlen"
+],
+"Miele raccolto": [
+"Honey harvested",
+"Miel cosechada",
+"Miel récolté",
+"Geernteter Honig"
+],
+"Miele venduto": [
+"Honey sold",
+"Miel vendida",
+"Miel vendu",
+"Verkaufter Honig"
+],
+"Prezzo medio miele": [
+"Average honey price",
+"Precio medio de la miel",
+"Prix moyen du miel",
+"Ø Honigpreis"
+],
+"Costo per kg prodotto": [
+"Cost per kg produced",
+"Coste por kg producido",
+"Coût par kg produit",
+"Kosten pro kg"
+],
+"Ricavo per arnia": [
+"Revenue per hive",
+"Ingreso por colmena",
+"Recette par ruche",
+"Erlös pro Volk"
+],
+"Costo per arnia": [
+"Cost per hive",
+"Coste por colmena",
+"Coût par ruche",
+"Kosten pro Volk"
+],
+"Per arnia": [
+"Per hive",
+"Por colmena",
+"Par ruche",
+"Pro Volk"
+],
+"Magazzino miele": [
+"Honey stock",
+"Existencias de miel",
+"Stock de miel",
+"Honigvorrat"
+],
+"Raccolto": [
+"Harvested",
+"Cosechado",
+"Récolté",
+"Geerntet"
+],
+"Venduto": [
+"Sold",
+"Vendido",
+"Vendu",
+"Verkauft"
+],
+"Giacenza": [
+"In stock",
+"Existencias",
+"En stock",
+"Bestand"
+],
+"Non specificato": [
+"Not specified",
+"Sin especificar",
+"Non précisé",
+"Nicht angegeben"
+],
+"Totale di tutti gli anni": [
+"Total of all years",
+"Total de todos los años",
+"Total toutes années",
+"Summe aller Jahre"
+],
+"Registra raccolte e vendite di miele per vedere le giacenze": [
+"Record honey harvests and sales to see stock",
+"Registra cosechas y ventas de miel para ver las existencias",
+"Enregistrez récoltes et ventes de miel pour voir le stock",
+"Honigernten und -verkäufe erfassen, um den Bestand zu sehen"
+],
+"Spese per categoria": [
+"Expenses by category",
+"Gastos por categoría",
+"Dépenses par catégorie",
+"Ausgaben nach Kategorie"
+],
+"Entrate per prodotto": [
+"Income by product",
+"Ingresos por producto",
+"Recettes par produit",
+"Einnahmen nach Produkt"
+],
+"Entrate per canale": [
+"Income by channel",
+"Ingresos por canal",
+"Recettes par canal",
+"Einnahmen nach Vertriebsweg"
+],
+"Mese per mese": [
+"Month by month",
+"Mes a mes",
+"Mois par mois",
+"Monat für Monat"
+],
+"Entrate": [
+"Income",
+"Ingresos",
+"Recettes",
+"Einnahmen"
+],
+"Uscite": [
+"Expenses",
+"Gastos",
+"Dépenses",
+"Ausgaben"
+],
+"Nessuna spesa": [
+"No expenses",
+"Ningún gasto",
+"Aucune dépense",
+"Keine Ausgaben"
+],
+"Nessuna vendita": [
+"No sales",
+"Ninguna venta",
+"Aucune vente",
+"Keine Verkäufe"
+],
+"Non indicato": [
+"Not given",
+"Sin indicar",
+"Non indiqué",
+"Nicht angegeben"
+],
+"Non indicata": [
+"Not given",
+"Sin indicar",
+"Non indiquée",
+"Nicht angegeben"
+],
+"Aggiungili": [
+"Add them",
+"Añadirlos",
+"Les ajouter",
+"Hinzufügen"
+],
+"Nessun acquisto": [
+"No purchases",
+"Ninguna compra",
+"Aucun achat",
+"Keine Käufe"
+],
+"Nessun cliente: si aggiungono da soli quando registri una vendita": [
+"No customers: they are added automatically when you record a sale",
+"Sin clientes: se añaden solos al registrar una venta",
+"Aucun client : ils sont ajoutés automatiquement à chaque vente",
+"Keine Kunden: sie werden beim Erfassen eines Verkaufs automatisch angelegt"
+],
+"Prezzo base (tutti i tipi)": [
+"Base price (all types)",
+"Precio base (todos los tipos)",
+"Prix de base (tous les types)",
+"Grundpreis (alle Sorten)"
+],
+"Listino vuoto": [
+"Price list is empty",
+"Tarifas vacías",
+"Tarifs vides",
+"Preisliste leer"
+],
+"Carica i formati tipici (250 g, 500 g, 1 kg)": [
+"Load typical sizes (250 g, 500 g, 1 kg)",
+"Cargar formatos típicos (250 g, 500 g, 1 kg)",
+"Charger les formats courants (250 g, 500 g, 1 kg)",
+"Übliche Größen laden (250 g, 500 g, 1 kg)"
+],
+"Poi correggi i prezzi con i tuoi": [
+"Then adjust the prices to your own",
+"Luego ajusta los precios a los tuyos",
+"Puis corrigez les prix avec les vôtres",
+"Dann die Preise anpassen"
+],
+"Arnie senza regina": [
+"Queenless hives",
+"Colmenas sin reina",
+"Ruches orphelines",
+"Weisellose Völker"
+],
+"All'ultima ispezione la regina non c'era": [
+"No queen at the last inspection",
+"En la última inspección no había reina",
+"Pas de reine à la dernière visite",
+"Bei der letzten Durchsicht keine Königin"
+],
+"Varroa sopra soglia": [
+"Varroa above threshold",
+"Varroa por encima del umbral",
+"Varroa au-dessus du seuil",
+"Varroa über der Schwelle"
+],
+"Melari su arnie in trattamento": [
+"Supers on hives under treatment",
+"Alzas en colmenas en tratamiento",
+"Hausses sur ruches en traitement",
+"Honigräume auf behandelten Völkern"
+],
+"Togli i melari: il miele può contenere residui del farmaco": [
+"Remove the supers: honey may contain medicine residues",
+"Retira las alzas: la miel puede contener residuos del medicamento",
+"Retirez les hausses : le miel peut contenir des résidus du médicament",
+"Honigräume abnehmen: der Honig kann Arzneimittelrückstände enthalten"
+],
+"non smielare": [
+"do not extract honey",
+"no cosechar miel",
+"ne pas extraire le miel",
+"keinen Honig schleudern"
+],
+"Comunica lo spostamento in BDA": [
+"Report the move to BDA",
+"Comunica el traslado a la BDA",
+"Déclarez le déplacement à la BDA",
+"Umsetzung an BDA melden"
+],
+"Fine trattamento": [
+"Treatment ended",
+"Fin del tratamiento",
+"Fin du traitement",
+"Behandlungsende"
+],
+"fine oggi": [
+"ends today",
+"termina hoy",
+"se termine aujourd’hui",
+"endet heute"
+],
+"fine domani": [
+"ends tomorrow",
+"termina mañana",
+"se termine demain",
+"endet morgen"
+],
+"Trattamento estivo": [
+"Summer treatment",
+"Tratamiento de verano",
+"Traitement d'été",
+"Sommerbehandlung"
+],
+"Trattamento invernale": [
+"Winter treatment",
+"Tratamiento de invierno",
+"Traitement d'hiver",
+"Winterbehandlung"
+],
+"Censimento BDA": [
+"BDA census",
+"Censo BDA",
+"Recensement BDA",
+"BDA-Bestandsmeldung"
+],
+"Dal 1° novembre": [
+"From 1 November",
+"Desde el 1 de noviembre",
+"À partir du 1er novembre",
+"Ab 1. November"
+],
+"Regine da rinnovare": [
+"Queens to replace",
+"Reinas por renovar",
+"Reines à remplacer",
+"Königinnen zu erneuern"
+],
+"Introdotte da 3 o più anni": [
+"Introduced 3 or more years ago",
+"Introducidas hace 3 años o más",
+"Introduites depuis 3 ans ou plus",
+"Seit 3 oder mehr Jahren eingeweiselt"
+],
+"Spese da pagare": [
+"Expenses to pay",
+"Gastos por pagar",
+"Dépenses à payer",
+"Offene Ausgaben"
+],
+"Miele in esaurimento": [
+"Honey running low",
+"Miel agotándose",
+"Miel bientôt épuisé",
+"Honig wird knapp"
+],
+"Acquisto arnia": [
+"Hive purchase",
+"Compra de colmena",
+"Achat d'une ruche",
+"Beutenkauf"
+],
+"fioritura acacia": [
+"acacia bloom",
+"floración de acacia",
+"floraison de l’acacia",
+"Akazienblüte"
+],
+"2 strisce/arnia": [
+"2 strips/hive",
+"2 tiras/colmena",
+"2 lanières/ruche",
+"2 Streifen/Volk"
+],
+"preferisce acacia, ritira il sabato": [
+"prefers acacia, collects on Saturdays",
+"prefiere acacia, recoge los sábados",
+"préfère l'acacia, passe le samedi",
+"mag Akazie, holt samstags ab"
+],
+"Eliminare?": [
+"Delete?",
+"¿Eliminar?",
+"Supprimer ?",
+"Löschen?"
+],
+"Aggiungi almeno un prodotto con quantità e prezzo": [
+"Add at least one product with quantity and price",
+"Añade al menos un producto con cantidad y precio",
+"Ajoutez au moins un produit avec quantité et prix",
+"Mindestens ein Produkt mit Menge und Preis hinzufügen"
+],
+"Errore": [
+"Error",
+"Error",
+"Erreur",
+"Fehler"
+],
+"file non valido o corrotto": [
+"invalid or corrupted file",
+"archivo no válido o dañado",
+"fichier invalide ou corrompu",
+"ungültige oder beschädigte Datei"
+],
+"Inserisci il nome del cliente": [
+"Enter the customer's name",
+"Introduce el nombre del cliente",
+"Saisissez le nom du client",
+"Namen des Kunden eingeben"
+],
+"Inserisci il numero/nome dell'arnia": [
+"Enter the hive number/name",
+"Introduce el número/nombre de la colmena",
+"Saisissez le numéro/nom de la ruche",
+"Nummer/Namen des Volks eingeben"
+],
+"Nessun dato da esportare": [
+"No data to export",
+"No hay datos para exportar",
+"Aucune donnée à exporter",
+"Keine Daten zum Exportieren"
+],
+"Nessuna arnia da spostare": [
+"No hives to move",
+"Ninguna colmena que trasladar",
+"Aucune ruche à déplacer",
+"Keine Völker umzusetzen"
+],
+"Promemoria ripristinati": [
+"Reminders restored",
+"Recordatorios restaurados",
+"Rappels restaurés",
+"Erinnerungen wiederhergestellt"
+],
+"Sostituire tutti i dati attuali con il backup?": [
+"Replace all current data with the backup?",
+"¿Sustituir todos los datos actuales por la copia?",
+"Remplacer toutes les données actuelles par la sauvegarde ?",
+"Alle aktuellen Daten durch die Sicherung ersetzen?"
+],
+"spazio iCloud esaurito: i dati restano salvati su questo dispositivo": [
+"iCloud space full: data stays saved on this device",
+"espacio de iCloud lleno: los datos siguen guardados en este dispositivo",
+"espace iCloud plein : les données restent sur cet appareil",
+"iCloud-Speicher voll: die Daten bleiben auf diesem Gerät gespeichert"
+],
+"compressione non riuscita": [
+"compression failed",
+"error de compresión",
+"échec de la compression",
+"Komprimierung fehlgeschlagen"
+],
+"Arnie spostate": [
+"Hives moved",
+"Colmenas trasladadas",
+"Ruches déplacées",
+"Umgesetzte Völker"
+],
+"Varroa": [
+"Varroa",
+"Varroa",
+"Varroa",
+"Varroa"
+],
+"Paese": [
+"Country",
+"País",
+"Pays",
+"Land"
+],
+"Unità di peso": [
+"Weight unit",
+"Unidad de peso",
+"Unité de poids",
+"Gewichtseinheit"
+],
+"Chilogrammi (kg)": [
+"Kilograms (kg)",
+"Kilogramos (kg)",
+"Kilogrammes (kg)",
+"Kilogramm (kg)"
+],
+"Libbre (lb)": [
+"Pounds (lb)",
+"Libras (lb)",
+"Livres (lb)",
+"Pfund (lb)"
+],
+"Altro Paese": [
+"Other country",
+"Otro país",
+"Autre pays",
+"Anderes Land"
+],
+"Cambiare valuta non converte gli importi già inseriti. Il Paese regola stagioni dei trattamenti, farmaci proposti e adempimenti (BDA solo per l'Italia).": [
+"Changing currency does not convert amounts already entered. The country sets treatment seasons, suggested medicines and legal reminders (BDA only for Italy).",
+"Cambiar la moneda no convierte los importes ya introducidos. El país define las temporadas de tratamiento, los medicamentos propuestos y los trámites (BDA solo para Italia).",
+"Changer de devise ne convertit pas les montants déjà saisis. Le pays règle les saisons de traitement, les médicaments proposés et les obligations (BDA seulement pour l'Italie).",
+"Ein Währungswechsel rechnet erfasste Beträge nicht um. Das Land bestimmt Behandlungszeiten, vorgeschlagene Mittel und Meldepflichten (BDA nur für Italien)."
+],
+"Codice apiario": [
+"Apiary registration no.",
+"N.º de registro del colmenar",
+"N° d’immatriculation du rucher",
+"Registriernummer des Standes"
+],
+"Benvenuto!": [
+"Welcome!",
+"¡Bienvenido!",
+"Bienvenue !",
+"Willkommen!"
+],
+"Per iniziare, quante arnie hai? Le creo numerate, poi puoi rinominarle e completarle.": [
+"To start, how many hives do you have? They will be created numbered; you can rename and complete them later.",
+"Para empezar, ¿cuántas colmenas tienes? Se crearán numeradas; luego puedes renombrarlas y completarlas.",
+"Pour commencer, combien de ruches avez-vous ? Elles seront créées numérotées ; vous pourrez ensuite les renommer et les compléter.",
+"Wie viele Völker hast du? Sie werden nummeriert angelegt; du kannst sie später umbenennen und ergänzen."
+],
+"Crea arnie": [
+"Create hives",
+"Crear colmenas",
+"Créer les ruches",
+"Völker anlegen"
+],
+"Imposta lingua, valuta e Paese in Altro → Impostazioni. Se usi l'app anche su un altro dispositivo, i dati arrivano da iCloud.": [
+"Set language, currency and country in More → Settings. If you also use the app on another device, your data arrives from iCloud.",
+"Configura idioma, moneda y país en Más → Ajustes. Si usas la app en otro dispositivo, los datos llegan desde iCloud.",
+"Réglez langue, devise et pays dans Plus → Réglages. Si vous utilisez l’app sur un autre appareil, les données arrivent via iCloud.",
+"Sprache, Währung und Land unter Mehr → Einstellungen festlegen. Nutzt du die App auf einem weiteren Gerät, kommen die Daten über iCloud."
+],
+"ossalico": [
+"oxalic",
+"oxálico",
+"oxalique",
+"Oxalsäure"
+],
+"formico": [
+"formic",
+"fórmico",
+"formique",
+"Ameisensäure"
+],
+"timolo": [
+"thymol",
+"timol",
+"thymol",
+"Thymol"
+],
+"amitraz": [
+"amitraz",
+"amitraz",
+"amitraze",
+"Amitraz"
+],
+"flumetrina": [
+"flumethrin",
+"flumetrina",
+"fluméthrine",
+"Flumethrin"
+],
+"fluvalinate": [
+"fluvalinate",
+"fluvalinato",
+"fluvalinate",
+"Fluvalinat"
+],
+"coumaphos": [
+"coumaphos",
+"cumafós",
+"coumaphos",
+"Coumaphos"
+],
+"Api-Bioxal sublimazione": [
+"Api-Bioxal vaporisation",
+"Api-Bioxal sublimación",
+"Api-Bioxal sublimation",
+"Api-Bioxal Verdampfung"
+]
+}
+const I18P={
+"kg miele {y}": [
+"kg honey {y}",
+"kg miel {y}",
+"kg miel {y}",
+"kg Honig {y}"
+],
+"Isp. {d}": [
+"Insp. {d}",
+"Insp. {d}",
+"Visite {d}",
+"Durchs. {d}"
+],
+"es. {x}": [
+"e.g. {x}",
+"p. ej. {x}",
+"ex. {x}",
+"z. B. {x}"
+],
+"Vasetto {x}": [
+"Jar {x}",
+"Tarro {x}",
+"Pot {x}",
+"Glas {x}"
+],
+"Secchio {x}": [
+"Bucket {x}",
+"Cubo {x}",
+"Seau {x}",
+"Eimer {x}"
+],
+"Flacone propoli {x}": [
+"Propolis bottle {x}",
+"Frasco de propóleo {x}",
+"Flacon de propolis {x}",
+"Propolis-Fläschchen {x}"
+],
+"miele {tipo}": [
+"{tipo} honey",
+"miel de {tipo}",
+"miel de {tipo}",
+"{tipo}"
+],
+"{n} registrate": [
+"{n} recorded",
+"{n} registradas",
+"{n} enregistrées",
+"{n} erfasst"
+],
+"{n} kg nel {y}": [
+"{n} kg in {y}",
+"{n} kg en {y}",
+"{n} kg en {y}",
+"{n} kg in {y}"
+],
+"{n} su arnie": [
+"{n} on hives",
+"{n} en colmenas",
+"{n} sur les ruches",
+"{n} auf Völkern"
+],
+"{n} nel {y}": [
+"{n} in {y}",
+"{n} en {y}",
+"{n} en {y}",
+"{n} in {y}"
+],
+"{n} spostamenti": [
+"{n} moves",
+"{n} traslados",
+"{n} déplacements",
+"{n} Umsetzungen"
+],
+"{n} movimenti": [
+"{n} entries",
+"{n} movimientos",
+"{n} mouvements",
+"{n} Buchungen"
+],
+"Installata il {d}": [
+"Installed on {d}",
+"Instalada el {d}",
+"Installée le {d}",
+"Aufgestellt am {d}"
+],
+"{n} telaini": [
+"{n} frames",
+"{n} cuadros",
+"{n} cadres",
+"{n} Rähmchen"
+],
+"{x} da": [
+"{x} from",
+"{x} de",
+"{x} de",
+"{x} aus"
+],
+"{n} melari": [
+"{n} supers",
+"{n} alzas",
+"{n} hausses",
+"{n} Honigräume"
+],
+"{n} melari posati": [
+"{n} supers added",
+"{n} alzas colocadas",
+"{n} hausses posées",
+"{n} Honigräume aufgesetzt"
+],
+"su dal {d}": [
+"on since {d}",
+"puestas desde el {d}",
+"posées depuis le {d}",
+"drauf seit {d}"
+],
+"{n} kg {x}": [
+"{n} kg {x}",
+"{n} kg {x}",
+"{n} kg {x}",
+"{n} kg {x}"
+],
+"{x} per arnia": [
+"{x} per hive",
+"{x} por colmena",
+"{x} par ruche",
+"{x} pro Volk"
+],
+"sospensione fino al {d}": [
+"withdrawal until {d}",
+"espera hasta el {d}",
+"délai d'attente jusqu'au {d}",
+"Wartezeit bis {d}"
+],
+"Sospensione fino al {d}": [
+"Withdrawal until {d}",
+"Espera hasta el {d}",
+"Délai d'attente jusqu'au {d}",
+"Wartezeit bis {d}"
+],
+"Tolti il {d}": [
+"Removed on {d}",
+"Retiradas el {d}",
+"Retirées le {d}",
+"Abgenommen am {d}"
+],
+"tolti il {d}": [
+"removed on {d}",
+"retiradas el {d}",
+"retirées le {d}",
+"abgenommen am {d}"
+],
+"Posati il {d}": [
+"Added on {d}",
+"Colocadas el {d}",
+"Posées le {d}",
+"Aufgesetzt am {d}"
+],
+"Spostata a {x}": [
+"Moved to {x}",
+"Trasladada a {x}",
+"Déplacée à {x}",
+"Umgesetzt nach {x}"
+],
+"da {x}": [
+"from {x}",
+"desde {x}",
+"de {x}",
+"von {x}"
+],
+"Nata {y}": [
+"Born {y}",
+"Nacida en {y}",
+"Née en {y}",
+"Geboren {y}"
+],
+"Introdotta {y}": [
+"Introduced {y}",
+"Introducida en {y}",
+"Introduite en {y}",
+"Eingeweiselt {y}"
+],
+"Marcatura {x}": [
+"Marking {x}",
+"Marcado {x}",
+"Marquage {x}",
+"Zeichen {x}"
+],
+"Forza {n}": [
+"Strength {n}",
+"Fuerza {n}",
+"Force {n}",
+"Stärke {n}"
+],
+"{n} arnie": [
+"{n} hives",
+"{n} colmenas",
+"{n} ruches",
+"{n} Völker"
+],
+"Registro dei trattamenti {y}": [
+"Treatment register {y}",
+"Registro de tratamientos {y}",
+"Registre des traitements {y}",
+"Behandlungsregister {y}"
+],
+"{n} gg": [
+"{n} days",
+"{n} días",
+"{n} j",
+"{n} Tage"
+],
+"Nessun trattamento nel {y}": [
+"No treatments in {y}",
+"Ningún tratamiento en {y}",
+"Aucun traitement en {y}",
+"Keine Behandlungen {y}"
+],
+"Nessuna raccolta nel {y}": [
+"No harvests in {y}",
+"Ninguna cosecha en {y}",
+"Aucune récolte en {y}",
+"Keine Ernten {y}"
+],
+"{n} trattamento senza n° ricetta o lotto del farmaco (celle in rosso): tocca la riga per completarlo.": [
+"{n} treatment without prescription no. or medicine batch (red cells): tap the row to complete it.",
+"{n} tratamiento sin n.º de receta o lote (celdas en rojo): toca la fila para completarlo.",
+"{n} traitement sans n° d’ordonnance ou lot (cellules rouges) : touchez la ligne pour le compléter.",
+"{n} Behandlung ohne Rezept-Nr. oder Charge (rote Zellen): Zeile antippen zum Ergänzen."
+],
+"{n} trattamenti senza n° ricetta o lotto del farmaco (celle in rosso): tocca la riga per completarli.": [
+"{n} treatments without prescription no. or medicine batch (red cells): tap a row to complete them.",
+"{n} tratamientos sin n.º de receta o lote (celdas en rojo): toca la fila para completarlos.",
+"{n} traitements sans n° d’ordonnance ou lot (cellules rouges) : touchez la ligne pour les compléter.",
+"{n} Behandlungen ohne Rezept-Nr. oder Charge (rote Zellen): Zeile antippen zum Ergänzen."
+],
+"Media {x} su {n} arnie produttive": [
+"Average {x} over {n} productive hives",
+"Media {x} en {n} colmenas productivas",
+"Moyenne {x} sur {n} ruches productives",
+"Durchschnitt {x} bei {n} produktiven Völkern"
+],
+"saldo {x}": [
+"balance {x}",
+"saldo {x}",
+"solde {x}",
+"Saldo {x}"
+],
+"Entrate nel {y}": [
+"Income in {y}",
+"Ingresos en {y}",
+"Recettes en {y}",
+"Einnahmen {y}"
+],
+"Uscite nel {y}": [
+"Expenses in {y}",
+"Gastos en {y}",
+"Dépenses en {y}",
+"Ausgaben {y}"
+],
+"Utile nel {y}": [
+"Profit in {y}",
+"Beneficio en {y}",
+"Bénéfice en {y}",
+"Gewinn {y}"
+],
+"Perdita nel {y}": [
+"Loss in {y}",
+"Pérdida en {y}",
+"Perte en {y}",
+"Verlust {y}"
+],
+"Indicatori nel {y}": [
+"Indicators for {y}",
+"Indicadores de {y}",
+"Indicateurs {y}",
+"Kennzahlen {y}"
+],
+"su {n} arnie attive oggi": [
+"based on {n} active hives today",
+"sobre {n} colmenas activas hoy",
+"sur {n} ruches actives aujourd’hui",
+"bei heute {n} aktiven Völkern"
+],
+"in rosso sotto {n} kg (Impostazioni)": [
+"red below {n} kg (Settings)",
+"en rojo por debajo de {n} kg (Ajustes)",
+"en rouge sous {n} kg (Réglages)",
+"rot unter {n} kg (Einstellungen)"
+],
+"{n} vendite": [
+"{n} sales",
+"{n} ventas",
+"{n} ventes",
+"{n} Verkäufe"
+],
+"{n} vendita": [
+"{n} sale",
+"{n} venta",
+"{n} vente",
+"{n} Verkauf"
+],
+"{n} vendite da incassare": [
+"{n} unpaid sales",
+"{n} ventas por cobrar",
+"{n} ventes à encaisser",
+"{n} offene Verkäufe"
+],
+"{n} vendita da incassare": [
+"{n} unpaid sale",
+"{n} venta por cobrar",
+"{n} vente à encaisser",
+"{n} offener Verkauf"
+],
+"{n} spese": [
+"{n} expenses",
+"{n} gastos",
+"{n} dépenses",
+"{n} Ausgaben"
+],
+"{n} spesa": [
+"{n} expense",
+"{n} gasto",
+"{n} dépense",
+"{n} Ausgabe"
+],
+"{n} spese da pagare": [
+"{n} expenses to pay",
+"{n} gastos por pagar",
+"{n} dépenses à payer",
+"{n} offene Ausgaben"
+],
+"{n} spesa da pagare": [
+"{n} expense to pay",
+"{n} gasto por pagar",
+"{n} dépense à payer",
+"{n} offene Ausgabe"
+],
+"Scaduta il {d}": [
+"Overdue since {d}",
+"Vencida el {d}",
+"Échue le {d}",
+"Fällig seit {d}"
+],
+"Da pagare entro il {d}": [
+"Due by {d}",
+"A pagar antes del {d}",
+"À payer avant le {d}",
+"Zu zahlen bis {d}"
+],
+"Da incassare {x}": [
+"To collect {x}",
+"Por cobrar {x}",
+"À encaisser {x}",
+"Offen {x}"
+],
+"{n} acquirenti delle vendite non sono in anagrafica.": [
+"{n} buyers from sales are not in your customer list.",
+"{n} compradores de las ventas no están en la lista de clientes.",
+"{n} acheteurs des ventes ne sont pas dans la liste des clients.",
+"{n} Käufer aus Verkäufen sind nicht in der Kundenliste."
+],
+"{n} acquisto": [
+"{n} purchase",
+"{n} compra",
+"{n} achat",
+"{n} Kauf"
+],
+"{n} acquisti": [
+"{n} purchases",
+"{n} compras",
+"{n} achats",
+"{n} Käufe"
+],
+"Ultima conta ≥ {a}/24h o ≥ {b}% di infestazione": [
+"Last count ≥ {a}/24h or ≥ {b}% infestation",
+"Último conteo ≥ {a}/24h o ≥ {b}% de infestación",
+"Dernier comptage ≥ {a}/24h ou ≥ {b}% d’infestation",
+"Letzte Zählung ≥ {a}/24h oder ≥ {b}% Befall"
+],
+"Sospensione {x}": [
+"Withdrawal {x}",
+"Espera {x}",
+"Délai {x}",
+"Wartezeit {x}"
+],
+"Fino al {d}": [
+"Until {d}",
+"Hasta el {d}",
+"Jusqu'au {d}",
+"Bis {d}"
+],
+"entro il {d}": [
+"by {d}",
+"antes del {d}",
+"avant le {d}",
+"bis {d}"
+],
+"Entro il {d}": [
+"By {d}",
+"Antes del {d}",
+"Avant le {d}",
+"Bis {d}"
+],
+"Terminato il {d}": [
+"Ended on {d}",
+"Terminado el {d}",
+"Terminé le {d}",
+"Beendet am {d}"
+],
+"{x} — rimuovi i presidi e verifica l'efficacia": [
+"{x} — remove the strips and check efficacy",
+"{x} — retira las tiras y verifica la eficacia",
+"{x} — retirez les lanières et vérifiez l'efficacité",
+"{x} — Streifen entfernen und Wirkung prüfen"
+],
+"fine tra {n} giorni": [
+"ends in {n} days",
+"termina en {n} días",
+"se termine dans {n} jours",
+"endet in {n} Tagen"
+],
+"{x} in corso": [
+"{x} in progress",
+"{x} en curso",
+"{x} en cours",
+"{x} läuft"
+],
+"{n} arnie da ispezionare": [
+"{n} hives to inspect",
+"{n} colmenas por inspeccionar",
+"{n} ruches à visiter",
+"{n} Völker durchzusehen"
+],
+"{n} arnia da ispezionare": [
+"{n} hive to inspect",
+"{n} colmena por inspeccionar",
+"{n} ruche à visiter",
+"{n} Volk durchzusehen"
+],
+"Ultima ispezione oltre {n} giorni fa": [
+"Last inspection more than {n} days ago",
+"Última inspección hace más de {n} días",
+"Dernière visite il y a plus de {n} jours",
+"Letzte Durchsicht vor mehr als {n} Tagen"
+],
+"comunica le {n} arnie in Banca Dati Apistica": [
+"report your {n} hives to the national registry (BDA)",
+"comunica tus {n} colmenas al registro apícola (BDA)",
+"déclarez vos {n} ruches au registre apicole (BDA)",
+"{n} Völker an das Bienenregister (BDA) melden"
+],
+"la più vecchia del {d}": [
+"oldest from {d}",
+"la más antigua del {d}",
+"la plus ancienne du {d}",
+"älteste vom {d}"
+],
+"{n} scaduta": [
+"{n} overdue",
+"{n} vencido",
+"{n} échue",
+"{n} überfällig"
+],
+"{n} scadute": [
+"{n} overdue",
+"{n} vencidos",
+"{n} échues",
+"{n} überfällig"
+],
+"{n} in scadenza entro 7 giorni": [
+"{n} due within 7 days",
+"{n} vencen en 7 días",
+"{n} à échéance sous 7 jours",
+"{n} fällig in 7 Tagen"
+],
+"{n} KB su 1024": [
+"{n} KB of 1024",
+"{n} KB de 1024",
+"{n} Ko sur 1024",
+"{n} KB von 1024"
+],
+"Esiste già un cliente \"{x}\"": [
+"A customer \"{x}\" already exists",
+"Ya existe un cliente \"{x}\"",
+"Un client « {x} » existe déjà",
+"Kunde „{x}“ existiert bereits"
+],
+"Esiste già un'arnia \"{x}\"": [
+"A hive \"{x}\" already exists",
+"Ya existe una colmena \"{x}\"",
+"Une ruche « {x} » existe déjà",
+"Volk „{x}“ existiert bereits"
+],
+"Nessuna arnia da spostare nella postazione \"{x}\"": [
+"No hives to move at site \"{x}\"",
+"Ninguna colmena que trasladar en \"{x}\"",
+"Aucune ruche à déplacer à « {x} »",
+"Keine Völker am Standort „{x}“"
+],
+"Ripristinare il backup del {x}?": [
+"Restore the backup from {x}?",
+"¿Restaurar la copia del {x}?",
+"Restaurer la sauvegarde du {x} ?",
+"Sicherung vom {x} wiederherstellen?"
+],
+"Eliminare {x}?": [
+"Delete {x}?",
+"¿Eliminar {x}?",
+"Supprimer {x} ?",
+"{x} löschen?"
+],
+"{n} record collegati (regine, trattamenti, raccolte, ispezioni…) resteranno nello storico.": [
+"{n} linked records (queens, treatments, harvests, inspections…) will stay in the history.",
+"{n} registros vinculados (reinas, tratamientos, cosechas, inspecciones…) quedarán en el historial.",
+"{n} fiches liées (reines, traitements, récoltes, visites…) resteront dans l’historique.",
+"{n} verknüpfte Einträge (Königinnen, Behandlungen, Ernten, Durchsichten…) bleiben im Verlauf."
+],
+"archivio troppo grande per iCloud ({n} KB): i dati restano salvati su questo dispositivo": [
+"archive too large for iCloud ({n} KB): data stays saved on this device",
+"archivo demasiado grande para iCloud ({n} KB): los datos siguen en este dispositivo",
+"archive trop volumineuse pour iCloud ({n} Ko) : les données restent sur cet appareil",
+"Archiv zu groß für iCloud ({n} KB): die Daten bleiben auf diesem Gerät"
+],
+"{p}% ({n} acari, {m})": [
+"{p}% ({n} mites, {m})",
+"{p}% ({n} ácaros, {m})",
+"{p}% ({n} acariens, {m})",
+"{p}% ({n} Milben, {m})"
+],
+"{n} spostamento": [
+"{n} move",
+"{n} traslado",
+"{n} déplacement",
+"{n} Umsetzung"
+],
+"{n} arnia": [
+"{n} hive",
+"{n} colmena",
+"{n} ruche",
+"{n} Volk"
+],
+"Nessun trattamento registrato da {m}": [
+"No treatment recorded since {m}",
+"Ningún tratamiento registrado desde {m}",
+"Aucun traitement enregistré depuis {m}",
+"Seit {m} keine Behandlung erfasst"
+],
+"Nessun trattamento da {m}: periodo di blocco di covata": [
+"No treatment since {m}: broodless period",
+"Ningún tratamiento desde {m}: periodo sin cría",
+"Aucun traitement depuis {m} : période hors couvain",
+"Seit {m} keine Behandlung: brutfreie Zeit"
+]
+}
+const PATS=Object.entries(I18P).map(([k,v])=>{const names=[]
+  const re=new RegExp('^'+k.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/\{(\w+)\}/g,(_,n)=>{names.push(n);return'(.+?)'})+'$')
+  return{re,names,v,lit:k.replace(/\{\w+\}/g,'').length}})
+  .sort((a,b)=>b.lit-a.lit) // prima i modelli più specifici ("Utile nel {y}" prima di "{n} nel {y}")
+// testo scritto nel codice (con eventuali segnaposto {nome})
+function t(s,v){
+  let r=LANG==='it'?s:(I18N[s]||I18P[s]||[])[LI[LANG]]||s
+  return v?r.replace(/\{(\w+)\}/g,(_,k)=>v[k]??''):r
+}
+const TR_CACHE=new Map()
+// testo mostrato (anche composto): null se non c'è niente da tradurre
+function trCore(c,d){
+  if(d>5||!c)return null
+  const L=LI[LANG],e=I18N[c];if(e)return e[L]
+  let m=c.match(/^([^\p{L}\p{N}"'(“«]+)(.+)$/u)                 // simboli/emoji iniziali: "🔔 Promemoria", "+ Nuova"
+  if(m){const r=trCore(m[2],d+1);return r==null?null:m[1]+r}
+  if(c.includes(' · ')){const ps=c.split(' · '),rs=ps.map(p=>trCore(p,d+1));return rs.some(x=>x!=null)?rs.map((x,i)=>x??ps[i]).join(' · '):null}
+  for(const p of PATS){m=c.match(p.re);if(m){let r=p.v[L];p.names.forEach((n,i)=>{const g=m[i+1];r=r.replace('{'+n+'}',trCore(g,d+1)??g)});return r}}
+  // "etichetta: valore" e "testo (dettaglio)": traduci le parti che si possono tradurre
+  m=c.match(/^(.+?): (.+)$/);if(m){const a=trCore(m[1],d+1),b=trCore(m[2],d+1);if(a!=null||b!=null)return(a??m[1])+': '+(b??m[2])}
+  m=c.match(/^(.+) \(([^()]*)\)$/);if(m){const a=trCore(m[1],d+1),b=trCore(m[2],d+1);if(a!=null||b!=null)return(a??m[1])+' ('+(b??m[2])+')'}
+  return null
+}
+function trText(s){
+  if(LANG==='it'||s==null)return s
+  s=String(s);if(TR_CACHE.has(s))return TR_CACHE.get(s)
+  const m=s.match(/^(\s*)([\s\S]*?)(\s*)$/),r=trCore(m[2],0),out=r==null?s:m[1]+r+m[3]
+  if(TR_CACHE.size<5000)TR_CACHE.set(s,out)
+  return out
+}
+function trMsg(s){return String(s).split('\n').map(trText).join('\n')}
+// Traduzione del DOM: ogni nodo di testo nuovo o cambiato (i campi modificabili no)
+const TR_SKIP=new Set(['SCRIPT','STYLE','TEXTAREA'])
+const TR_DONE=new WeakMap()
+function trNode(n){
+  const v=n.nodeValue,p=n.parentNode
+  if(!p||TR_DONE.get(n)===v||TR_SKIP.has(p.nodeName))return
+  const k=p.getAttribute&&p.getAttribute('data-t')
+  const r=unitText(k?(I18N[k]||[])[LI[LANG]]||v:trText(v))
+  TR_DONE.set(n,r);if(r!==v)n.nodeValue=r
+}
+function trAttrs(el){['placeholder','title'].forEach(a=>{const v=el.getAttribute(a);if(v){const r=unitText(trText(v));if(r!==v)el.setAttribute(a,r)}})}
+function trEl(el){
+  if(el.nodeType===3)return trNode(el)
+  if(el.nodeType!==1||TR_SKIP.has(el.nodeName))return
+  trAttrs(el);el.querySelectorAll('[placeholder],[title]').forEach(trAttrs)
+  const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n;while((n=w.nextNode()))trNode(n)
+}
+function initI18n(){
+  try{document.documentElement.lang=LANG}catch(e){}
+  if((LANG==='it'&&U()==='kg')||typeof MutationObserver==='undefined')return
+  trEl(document.body)
+  new MutationObserver(ms=>ms.forEach(m=>{if(m.type==='characterData')trNode(m.target);else m.addedNodes.forEach(trEl)}))
+    .observe(document.body,{childList:true,subtree:true,characterData:true})
+  if(LANG==='it')return
+  const A=window.alert,C=window.confirm
+  window.alert=m=>A.call(window,trMsg(m));window.confirm=m=>C.call(window,trMsg(m))
+}
+
 const KEY='apiario_v2'
 var db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[],spese:[],vendite:[]}
 let eId=null,eType=null
-const DEF_SETTINGS={ispGiorni:14,varroaSoglia:10,varroaSogliaPct:3,magSoglia:5,apicoltore:'',codAzienda:'',codApiario:'',dismissed:{}}
+const DEF_SETTINGS={valuta:'EUR',paese:'',unita:'',ispGiorni:14,varroaSoglia:10,varroaSogliaPct:3,magSoglia:5,apicoltore:'',codAzienda:'',codApiario:'',dismissed:{}}
 // tipo record → collezione in db
 const COLL={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni',spesa:'spese',vendita:'vendite',
   nutrizione:'nutrizione',melario:'melari',spostamento:'spostamenti',cliente:'clienti',listino:'listino'}
@@ -638,7 +3983,6 @@ function load(){
   if(!found||!db||typeof db!=='object'){
     // _seeded: dati di esempio mai toccati, alla prima sincronizzazione vincono quelli di iCloud
     db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[],spese:[],vendite:[],_seeded:true}
-    for(let i=1;i<=30;i++)db.arnie.push({id:aid(i),tipo:'Langstroth',posizione:'',dataInst:'',colore:'',telaini:'',stato:'Attiva',note:''})
     ensureShape();persist()
   }
   ensureShape()
@@ -648,6 +3992,8 @@ function load(){
 function ensureShape(){
   Object.values(COLL).forEach(c=>{if(!Array.isArray(db[c]))db[c]=[]})
   db.settings={...DEF_SETTINGS,...(db.settings||{})}
+  if(!PAESI[db.settings.paese])db.settings.paese=paeseDefault()
+  if(db.settings.unita!=='kg'&&db.settings.unita!=='lb')db.settings.unita=PAESI[db.settings.paese][1]
   if(!db.settings.dismissed||typeof db.settings.dismissed!=='object')db.settings.dismissed={}
   if(!db._deleted||typeof db._deleted!=='object')db._deleted={}
 }
@@ -723,7 +4069,7 @@ function rSyncPanel(){
   const el=document.getElementById('sync-panel');if(!el)return
   if(!window.__NATIVE__){el.style.display='none';return}
   el.style.display=''
-  const s=syncState(),t=ms=>ms?new Date(ms).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'
+  const s=syncState(),t=ms=>ms?new Date(ms).toLocaleString(LOC,{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'
   const kb=s.bytes?Math.round(s.bytes/1024):null,full=kb&&kb>800
   document.getElementById('sync-body').innerHTML=`
     <div class="set-row"><span class="citem-sub">iCloud</span><span>${window.__ICLOUD__===false?bdg('Non attivo','bad'):bdg('Attivo','ok')}</span></div>
@@ -741,7 +4087,7 @@ function autoBackup(minGap=0){
   try{
     if(minGap&&Date.now()-((getAutoBackups()[0]||{}).ts||0)<minGap)return
     const now=new Date()
-    const label=now.toLocaleDateString('it-IT')+' '+now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})
+    const label=now.toLocaleDateString(LOC)+' '+now.toLocaleTimeString(LOC,{hour:'2-digit',minute:'2-digit'})
     const bks=JSON.parse(localStorage.getItem(BK_KEY)||'[]')
     bks.unshift({ts:Date.now(),label,data:JSON.stringify(db)})
     if(bks.length>3)bks.length=3
@@ -784,9 +4130,21 @@ function restoreData(input){
   }
   r.readAsText(file)
 }
-function aid(n){return 'Arnia '+String(n).padStart(2,'0')}
+function aid(n){return t('Arnia')+' '+String(n).padStart(2,'0')}
+function creaArnie(n){
+  n=Math.min(500,parseInt(n)||0);if(!n)return
+  for(let i=0;i<n;i++)db.arnie.push({id:nextArniaId(),tipo:'',posizione:'',dataInst:'',colore:'',telaini:'',stato:'Attiva',note:''})
+  save();rDash()
+}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
-function fmt(d){if(!d)return'';const p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d}
+function fmt(d){
+  if(!d)return'';const p=String(d).split('-');if(p.length!==3)return d
+  if(LANG==='it')return p[2]+'/'+p[1]+'/'+p[0]
+  try{return new Intl.DateTimeFormat(LOC,{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(Date.UTC(+p[0],+p[1]-1,+p[2]))}
+  catch(e){return p[2]+'/'+p[1]+'/'+p[0]}
+}
+// numero con n decimali fissi, separatore della lingua (es. 31,0 / 31.0)
+function nf(n,dec=1){return(+n||0).toLocaleString(LOC,{minimumFractionDigits:dec,maximumFractionDigits:dec})}
 function esc(s){return s!=null?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'):''}
 // Stringa come argomento JS dentro un attributo onclick="…" (sicura con apostrofi e virgolette)
 function jsq(s){return esc(JSON.stringify(String(s)))}
@@ -802,7 +4160,8 @@ function qst(yr){if(!yr)return bdg('N/D','neu');return(new Date().getFullYear()-
 function lastOf(arr,af,av,df){return[...arr].filter(r=>r[af]===av).sort((a,b)=>b[df]>a[df]?1:-1)[0]||null}
 function suOf(arr,af,av,kf){return arr.filter(r=>r[af]===av).reduce((s,r)=>s+(parseFloat(r[kf])||0),0)}
 // numero salvato col punto → virgola italiana per la visualizzazione
-function itNum(v){return String(v??'').replace('.',',')}
+function itNum(v){const s=String(v??'');return DEC===','?s.replace('.',','):s}
+function nArnie(n){return n+(n===1?' arnia':' arnie')}
 function isAlive(a){return a.stato!=='Morta'&&a.stato!=='Inattiva'}
 // Varroa: caduta naturale (acari/24h) oppure conta su campione di ~300 api (zucchero a velo, alcol, CO2) → % infestazione
 function vInfo(i){
@@ -848,10 +4207,10 @@ function rAltro(){
   const tile=(sec,ico,lbl,sub)=>`<button onclick="go('${sec}')"><span>${ico}</span>${lbl}<small>${sub}</small></button>`
   document.getElementById('altro-grid').innerHTML=
     tile('regine','👑','Regine',db.regine.length+' registrate')+
-    tile('produzione','🍯','Produzione',kg.toFixed(1)+' kg nel '+y)+
+    tile('produzione','🍯','Produzione',nf(kg)+' kg nel '+y)+
     tile('melari','📦','Melari',db.arnie.reduce((s,a)=>s+melariSu(a.id),0)+' su arnie')+
     tile('nutrizione','🥣','Nutrizione',db.nutrizione.filter(n=>(n.data||'').startsWith(y)).length+' nel '+y)+
-    tile('spostamenti','🚚','Nomadismo',db.spostamenti.length+' spostamenti')+
+    tile('spostamenti','🚚','Nomadismo',db.spostamenti.length+(db.spostamenti.length===1?' spostamento':' spostamenti'))+
     tile('statistiche','📈','Statistiche','Grafici per anno')+
     tile('economia','💰','Economia',db.spese.length+db.vendite.length+' movimenti')+
     tile('impostazioni','⚙️','Impostazioni','Backup, promemoria, CSV')
@@ -895,14 +4254,14 @@ const EVR={
   },
   trattamento:r=>({d:r.dataInizio,ico:'💊',title:`${esc(r.prodotto)||'Trattamento'} · ${fmt(r.dataInizio)}${r.dataFine?' → '+fmt(r.dataFine):''}`,
     body:`<div class="citem-sub">${[r.parassita,r.dose,!r.arniaId?'Tutto l\'apiario':'',fineSosp(r)?'sospensione fino al '+fmt(fineSosp(r)):''].filter(Boolean).map(esc).join(' · ')}</div>`}),
-  produzione:r=>({d:r.data,ico:'🍯',title:`${r.kg?esc(r.kg)+' kg ':''}${esc(r.tipoMiele)||'Raccolta'} · ${fmt(r.data)}`,
+  produzione:r=>({d:r.data,ico:'🍯',title:`${r.kg?esc(itNum(r.kg))+' kg ':''}${esc(r.tipoMiele)||'Raccolta'} · ${fmt(r.data)}`,
     body:`<div class="citem-sub">${[r.qualita,r.melari?r.melari+' melari':'',r.umidita?'Umidità '+r.umidita+'%':'',r.lotto?'Lotto '+r.lotto:''].filter(Boolean).map(esc).join(' · ')}</div>`}),
   nutrizione:r=>({d:r.data,ico:'🥣',title:`${esc(r.tipo)||'Nutrizione'} · ${fmt(r.data)}`,
     body:`<div class="citem-sub">${[r.qta?itNum(r.qta)+' per arnia':'',!r.arniaId?'Tutto l\'apiario':''].filter(Boolean).map(esc).join(' · ')}</div>`}),
   melario:r=>({d:r.dataPosa,ico:'📦',title:`${r.numero||1} melari posati · ${fmt(r.dataPosa)}`,
     body:`<div class="citem-sub">${r.dataTolta?'Tolti il '+fmt(r.dataTolta):'Ancora sull\'arnia'}</div>`}),
   spostamento:r=>({d:r.data,ico:'🚚',title:`Spostata${r.a?' a '+esc(r.a):''} · ${fmt(r.data)}`,
-    body:`<div class="citem-sub">${[r.da?'da '+r.da:'',r.motivo,r.bda==='Sì'?'comunicato in BDA':'da comunicare in BDA'].filter(Boolean).map(esc).join(' · ')}</div>`}),
+    body:`<div class="citem-sub">${[r.da?'da '+r.da:'',r.motivo,isIT()?(r.bda==='Sì'?'comunicato in BDA':'da comunicare in BDA'):''].filter(Boolean).map(esc).join(' · ')}</div>`}),
 }
 function rArnia(){
   const el=document.getElementById('arnia-det')
@@ -955,8 +4314,8 @@ function rArnia(){
   ${mOpen.length?`<div class="minfo">${mOpen.map(m=>`<div class="row"><span>📦 <b>${esc(m.numero||1)} melari</b> su dal ${fmt(m.dataPosa)}</span>
     <button class="btn-sm" onclick="togliMelario(${jsq(m.id)})">Tolti oggi</button></div>`).join('')}</div>`:''}
   <div class="stats">
-    <div class="stat"><div class="stat-val">${kgY.toFixed(1)}</div><div class="stat-lbl">kg miele ${y}</div></div>
-    <div class="stat"><div class="stat-val">${kgT.toFixed(1)}</div><div class="stat-lbl">kg totali</div></div>
+    <div class="stat"><div class="stat-val">${nfw(kgY)}</div><div class="stat-lbl">kg miele ${y}</div></div>
+    <div class="stat"><div class="stat-val">${nfw(kgT)}</div><div class="stat-lbl">kg totali</div></div>
     <div class="stat b"><div class="stat-val">${gg==null?'—':gg}</div><div class="stat-lbl">${gg==null?'Nessuna ispezione':'giorni dall\'ultima ispezione'}</div></div>
     <div class="stat r"><div class="stat-val">${vi?esc(vi.val):'—'}</div><div class="stat-lbl">${vi?esc(vi.lbl)+' ('+fmt(lv.data)+')':'Varroa'}</div></div>
   </div>
@@ -1019,8 +4378,8 @@ function rSpost(){
   const l=[...db.spostamenti].sort(byDateDesc('data'))
   document.getElementById('list-spostamenti').innerHTML=l.map(s=>rowCard('spostamento',s,
     `${fmt(s.data)} · ${esc(s.da||'?')} → ${esc(s.a||'?')}`,
-    [`${(s.arnie||[]).length} arnie${s.motivo?' · '+esc(s.motivo):''}`,(s.arnie||[]).map(esc).join(', ')],
-    s.bda==='Sì'?bdg('BDA ✓','ok'):bdg('Da comunicare','warn'),'spostamenti')).join('')
+    [`${nArnie((s.arnie||[]).length)}${s.motivo?' · '+esc(s.motivo):''}`,(s.arnie||[]).map(esc).join(', ')],
+    !isIT()?'':s.bda==='Sì'?bdg('BDA ✓','ok'):bdg('Da comunicare','warn'),'spostamenti')).join('')
     ||'<div class="empty">Nessuno spostamento registrato</div>'
 }
 
@@ -1047,7 +4406,7 @@ function rRegistro(){
     <div class="reg-head">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Registro dei trattamenti ${regYear}</b>
         <select class="no-print" onchange="regYear=this.value;rRegistro()" style="padding:4px 8px;border-radius:8px;border:1px solid var(--sep)">${(ys.length?ys:[cy]).map(y=>`<option${y===regYear?' selected':''}>${y}</option>`).join('')}</select></div>
-      Apicoltore: ${esc(st.apicoltore)||'—'} · Codice aziendale: ${esc(st.codAzienda)||'—'} · Apiario BDA: ${esc(st.codApiario)||'—'}
+      Apicoltore: ${esc(st.apicoltore)||'—'} · Codice aziendale: ${esc(st.codAzienda)||'—'} · ${isIT()?'Apiario BDA':'Codice apiario'}: ${esc(st.codApiario)||'—'}
       ${!st.apicoltore||!st.codAzienda?`<div class="no-print" style="font-size:.78rem;color:var(--text2)">Completa i dati azienda in Altro → Impostazioni</div>`:''}
     </div>
     ${miss?`<div class="reg-warn no-print">⚠️ ${miss} trattament${miss===1?'o':'i'} senza n° ricetta o lotto del farmaco (celle in rosso): tocca la riga per completarl${miss===1?'o':'i'}.</div>`:''}
@@ -1072,8 +4431,8 @@ function rStat(){
   const cy=String(new Date().getFullYear())
   if(!statYear||!ys.includes(statYear))statYear=ys.includes(cy)?cy:(ys[ys.length-1]||cy)
   const sum=(l,k)=>l.reduce((s,r)=>s+(parseFloat(r[k])||0),0)
-  const kgF=n=>n.toLocaleString('it-IT',{maximumFractionDigits:1})+' kg'
-  const eurF=n=>'€ '+n.toLocaleString('it-IT',{maximumFractionDigits:0})
+  const kgF=n=>n.toLocaleString(LOC,{maximumFractionDigits:1})+' kg'
+  const eurF=n=>eur(n,0)
   const el=document.getElementById('stat-body')
   if(!ys.length){el.innerHTML='<div class="empty">Ancora nessun dato: registra raccolte, spese o vendite</div>';return}
   const kgY=ys.map(y=>({l:y,v:sum(db.produzione.filter(p=>yr(p)===y),'kg')}))
@@ -1116,14 +4475,25 @@ function exportCSV(coll){
 }
 
 function setOpt(k,v){
-  const n=parseFloat(String(v).replace(',','.'))
+  let n=parseFloat(String(v).replace(',','.'))
+  if(k==='magSoglia'&&!isNaN(n))n=round2(fromU(n))
   db.settings[k]=isNaN(n)||n<0?DEF_SETTINGS[k]:n;save();rImpostazioni()
 }
 function setTxt(k,v){db.settings[k]=String(v).trim();save()}
 function resetDismissed(){db.settings.dismissed={};save();alert('Promemoria ripristinati')}
 function rImpostazioni(){
   rSyncPanel()
-  ;['ispGiorni','varroaSoglia','varroaSogliaPct','magSoglia','apicoltore','codAzienda','codApiario'].forEach(k=>{const i=document.getElementById('set-'+k);if(i)i.value=db.settings[k]})
+  const sl=document.getElementById('set-lang')
+  if(sl)sl.innerHTML=Object.entries(LANGS).map(([k,n])=>`<option value="${k}"${k===LANG?' selected':''}>${n}</option>`).join('')
+  const sv=document.getElementById('set-valuta')
+  if(sv)sv.innerHTML=VALUTE.map(c=>`<option value="${c}"${c===curCode()?' selected':''}>${c} — ${esc(curName(c))}</option>`).join('')
+  const lc=document.getElementById('lbl-codApiario');if(lc)lc.textContent=isIT()?'Codice apiario BDA':'Codice apiario'
+  const sp=document.getElementById('set-paese')
+  if(sp)sp.innerHTML=Object.keys(PAESI).map(c=>[c,paeseName(c)]).sort((a,b)=>a[0]==='ZZ'?1:b[0]==='ZZ'?-1:a[1].localeCompare(b[1],LOC))
+    .map(([c,n])=>`<option value="${c}"${c===paese()?' selected':''}>${esc(n)}</option>`).join('')
+  const su=document.getElementById('set-unita')
+  if(su)su.innerHTML=[['kg','Chilogrammi (kg)'],['lb','Libbre (lb)']].map(([u,n])=>`<option value="${u}"${u===U()?' selected':''}>${n}</option>`).join('')
+  ;['ispGiorni','varroaSoglia','varroaSogliaPct','magSoglia','apicoltore','codAzienda','codApiario'].forEach(k=>{const i=document.getElementById('set-'+k);if(i)i.value=k==='magSoglia'?uStr(db.settings[k]):db.settings[k]})
   const cb=document.getElementById('csv-btns')
   if(cb)cb.innerHTML=CSV_LIST.map(([c,l])=>`<button class="btn-sm" onclick="exportCSV('${c}')">${l} (${db[c].length})</button>`).join('')
   const bks=getAutoBackups()
@@ -1173,7 +4543,7 @@ function todoItems(){
   db.spostamenti.forEach(s=>{
     if(s.bda==='Sì'||!s.data)return
     const g=daysBetween(s.data,T)
-    if(g>=0&&g<=7)push(g>=5?'r':'w','🚚','Comunica lo spostamento in BDA',`${fmt(s.data)} → ${s.a||'?'} · ${(s.arnie||[]).length} arnie · entro il ${fmt(addDays(s.data,7))}`,{edit:['spostamento',s.id]})
+    if(isIT()&&g>=0&&g<=7)push(g>=5?'r':'w','🚚','Comunica lo spostamento in BDA',`${fmt(s.data)} → ${s.a||'?'} · ${nArnie((s.arnie||[]).length)} · entro il ${fmt(addDays(s.data,7))}`,{edit:['spostamento',s.id]})
   })
 
   // trattamenti: fine imminente, appena finiti, in corso
@@ -1196,15 +4566,23 @@ function todoItems(){
 
   // trattamenti stagionali contro varroa (estivo dopo i raccolti, invernale in blocco di covata)
   const trFrom=d=>db.trattamenti.some(t=>t.dataInizio&&t.dataInizio>=d)
-  if(md>='07-15'&&md<='08-31'&&!trFrom(y+'-07-01'))
-    push('w','☀️','Trattamento estivo','Nessun trattamento registrato da luglio',{key:'test-'+y})
-  if(md>='12-01'||md<='01-31'){
-    const sy=md>='12-01'?y:y-1
-    if(!trFrom(sy+'-11-01'))push('w','❄️','Trattamento invernale','Nessun trattamento da novembre: periodo di blocco di covata',{key:'tinv-'+sy})
+  const mese=m=>new Intl.DateTimeFormat(LOC,{month:'long',timeZone:'UTC'}).format(Date.UTC(2000,m-1,1))
+  if(!isSouth()){
+    if(md>='07-15'&&md<='08-31'&&!trFrom(y+'-07-01'))
+      push('w','☀️','Trattamento estivo',`Nessun trattamento registrato da ${mese(7)}`,{key:'test-'+y})
+    if(md>='12-01'||md<='01-31'){
+      const sy=md>='12-01'?y:y-1
+      if(!trFrom(sy+'-11-01'))push('w','❄️','Trattamento invernale',`Nessun trattamento da ${mese(11)}: periodo di blocco di covata`,{key:'tinv-'+sy})
+    }
+  }else{
+    if(md>='01-15'&&md<='02-28'&&!trFrom(y+'-01-01'))
+      push('w','☀️','Trattamento estivo',`Nessun trattamento registrato da ${mese(1)}`,{key:'test-'+y})
+    if(md>='06-01'&&md<='07-31'&&!trFrom(y+'-05-01'))
+      push('w','❄️','Trattamento invernale',`Nessun trattamento da ${mese(5)}: periodo di blocco di covata`,{key:'tinv-'+y})
   }
 
   // censimento annuale in Banca Dati Apistica (1 nov – 31 dic)
-  if(md>='10-15')push(md>='12-15'?'r':'w','📋','Censimento BDA',
+  if(isIT()&&md>='10-15')push(md>='12-15'?'r':'w','📋','Censimento BDA',
     `${md<'11-01'?'Dal 1° novembre':'Entro il 31/12'}: comunica le ${hives.length} arnie in Banca Dati Apistica`,{key:'bda-'+y,done:true})
 
   // incassi e pagamenti
@@ -1249,6 +4627,15 @@ function rTodo(){
 
 function rDash(){
   rTodo()
+  if(!db.arnie.length){
+    document.getElementById('dash-todo').innerHTML=`<div class="clist"><div class="citem" style="flex-direction:column;align-items:stretch;gap:10px;cursor:default">
+      <div class="citem-title" style="font-size:1.1rem">🐝 Benvenuto!</div>
+      <div class="citem-sub tl-wrap">Per iniziare, quante arnie hai? Le creo numerate, poi puoi rinominarle e completarle.</div>
+      <div style="display:flex;gap:8px"><input id="n-arnie" inputmode="numeric" pattern="[0-9]*" placeholder="es. 10" class="yr-sel" style="flex:1;font-size:1rem;padding:10px">
+        <button class="btn-add" onclick="creaArnie(document.getElementById('n-arnie').value)">Crea arnie</button></div>
+      <div class="citem-sub tl-wrap">Imposta lingua, valuta e Paese in Altro → Impostazioni. Se usi l'app anche su un altro dispositivo, i dati arrivano da iCloud.</div>
+    </div></div>`
+  }
   const y=new Date().getFullYear()
   const ym=y+'-'+String(new Date().getMonth()+1).padStart(2,'0')
   const att=db.arnie.filter(a=>a.stato==='Attiva').length
@@ -1262,7 +4649,7 @@ function rDash(){
     <div class="stat"><div class="stat-val">${att}</div><div class="stat-lbl">Arnie attive</div></div>
     <div class="stat g"><div class="stat-val">${rv}</div><div class="stat-lbl">Regine valide</div></div>
     <div class="stat r"><div class="stat-val">${rw}</div><div class="stat-lbl">Da rinnovare</div></div>
-    <div class="stat"><div class="stat-val">${kg.toFixed(1)}</div><div class="stat-lbl">kg miele ${y}</div></div>
+    <div class="stat"><div class="stat-val">${nfw(kg)}</div><div class="stat-lbl">kg miele ${y}</div></div>
     <div class="stat b"><div class="stat-val">${tm}</div><div class="stat-lbl">Trattam. mese</div></div>`
   let h=''
   db.arnie.forEach(a=>{
@@ -1283,7 +4670,7 @@ function rDash(){
         ${li?`<div style="font-size:.7rem;color:var(--text2);margin-top:2px">Isp. ${fmt(li.data)}</div>`:''}
       </div>
       <div class="dash-right">
-        ${kgy>0?`<div class="kg">${kgy.toFixed(1)}</div><div class="lbl">kg</div>`:''}
+        ${kgy>0?`<div class="kg">${nfw(kgy)}</div><div class="lbl">kg</div>`:''}
       </div>
       <div class="chev">›</div>
     </div>`
@@ -1382,13 +4769,13 @@ function rProd(q=''){
   const list=[...db.produzione].sort((a,b)=>b.data>a.data?1:-1)
     .filter(p=>!q||JSON.stringify(p).toLowerCase().includes(q.toLowerCase()))
   const tot=list.reduce((s,p)=>s+(parseFloat(p.kg)||0),0)
-  let h=tot>0?`<div style="padding:10px 14px;font-size:.8rem;color:var(--text2)">Totale filtrato: <b>${tot.toFixed(1)} kg</b></div>`:''
+  let h=tot>0?`<div style="padding:10px 14px;font-size:.8rem;color:var(--text2)">Totale filtrato: <b>${nf(tot)} kg</b></div>`:''
   list.forEach(p=>{
     const qb=p.qualita==='Ottima'?bdg('Ottima','ok'):p.qualita==='Scartata'?bdg('Scartata','bad'):p.qualita?bdg(p.qualita,'neu'):''
     h+=`<div class="clist" style="margin-bottom:10px">
       <div class="citem">
         <div class="citem-left">
-          <div class="citem-title" style="font-size:1.1rem">${p.kg?`<b>${p.kg} kg</b>`:''} ${esc(p.tipoMiele)}</div>
+          <div class="citem-title" style="font-size:1.1rem">${p.kg?`<b>${esc(itNum(p.kg))} kg</b>`:''} ${esc(p.tipoMiele)}</div>
           <div class="citem-sub">${esc(p.arniaId)} · ${fmt(p.data)}</div>
           ${p.umidita?`<div class="citem-sub">Umidità: ${esc(p.umidita)}%${p.melari?' · '+p.melari+' melari':''}</div>`:''}
           ${p.lotto?`<div class="citem-sub">Lotto: ${esc(p.lotto)}</div>`:''}
@@ -1443,7 +4830,12 @@ const SFUSO='Sfuso (kg)'
 function num(v){const n=parseFloat(String(v??'').replace(',','.'));return isNaN(n)?0:n}
 function round2(n){return Math.round(n*100)/100}
 function round1(n){return Math.round(n*10)/10}
-function eur(n){return'€ '+(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function eur(n,dec=2){
+  n=n||0
+  if(LANG==='it'&&curCode()==='EUR')return'€ '+n.toLocaleString('it-IT',{minimumFractionDigits:dec,maximumFractionDigits:dec})
+  try{return n.toLocaleString(LOC,{style:'currency',currency:curCode(),currencyDisplay:'narrowSymbol',minimumFractionDigits:dec,maximumFractionDigits:dec})}
+  catch(e){return curCode()+' '+n.toFixed(dec)}
+}
 function eurS(n){return(n<0?'−':'')+eur(Math.abs(n))} // con segno, per saldi
 const sumBy=(l,f)=>l.reduce((s,x)=>s+(f(x)||0),0)
 
@@ -1453,6 +4845,8 @@ function formatoKg(f){
   const l=db.listino.find(x=>x.formato===f&&num(x.kg));if(l)return num(l.kg)
   if(f===SFUSO)return 1
   let m=String(f||'').match(/(\d+(?:[.,]\d+)?)\s*kg/i);if(m)return num(m[1])
+  m=String(f||'').match(/(\d+(?:[.,]\d+)?)\s*lb\b/i);if(m)return num(m[1])*LB
+  m=String(f||'').match(/(\d+(?:[.,]\d+)?)\s*oz\b/i);if(m)return num(m[1])*LB/16
   m=String(f||'').match(/(\d+)\s*g\b/i);return m?parseInt(m[1])/1000:0
 }
 function prezzoListino(tipo,f){
@@ -1468,13 +4862,15 @@ function righeOf(v){
 function rigaKg(r){return r.prodotto==='Miele'?num(r.qta)*formatoKg(r.formato):0}
 function righeTxt(v){
   return righeOf(v).map(r=>{
-    const cosa=r.prodotto==='Miele'?(r.tipoMiele?'miele '+r.tipoMiele.toLowerCase():'miele'):r.prodotto.toLowerCase()
-    return r.formato===SFUSO?`${itNum(r.qta)} kg ${cosa}`:`${itNum(r.qta)}× ${r.formato?r.formato+' ':''}${cosa}`
+    const low=s=>LANG==='de'?s:s.toLowerCase()
+    const cosa=r.prodotto==='Miele'?(r.tipoMiele?t('miele {tipo}',{tipo:low(t(r.tipoMiele))}):t('miele')):low(t(r.prodotto))
+    return r.formato===SFUSO?`${itNum(r.qta)} kg ${cosa}`:`${itNum(r.qta)}× ${r.formato?trText(r.formato)+' ':''}${cosa}`
   }).join(', ')
 }
 
 // Riga prodotto nel form vendita
 function rigaHTML(r={}){
+  if(r.formato===SFUSO&&U()==='lb'&&r.qta!=null)r={...r,qta:String(round2(toU(r.qta))),prezzo:r.prezzo?String(round2(num(r.prezzo)*LB)):r.prezzo}
   const opt=(list,v,ph)=>list.map(o=>`<option value="${esc(o)}"${o===v?' selected':''}>${o?esc(o):ph}</option>`).join('')
   const fl=['',...formati()];if(r.formato&&!fl.includes(r.formato))fl.push(r.formato)
   return`<div class="vriga">
@@ -1482,7 +4878,7 @@ function rigaHTML(r={}){
       <div class="fgrp"><label>Tipo di miele</label><select name="r_tipoMiele" onchange="vPrice(this)">${opt(TIPI_MIELE,r.tipoMiele||'','—')}</select></div></div>
     <div class="vriga-3"><div class="fgrp"><label>Formato</label><select name="r_formato" onchange="vPrice(this)">${opt(fl,r.formato||'','—')}</select></div>
       <div class="fgrp"><label>Q.tà</label><input name="r_qta" inputmode="decimal" value="${esc(itNum(r.qta??'1'))}" oninput="vTot(this.form)"></div>
-      <div class="fgrp"><label>Prezzo €</label><input name="r_prezzo" inputmode="decimal" value="${esc(itNum(r.prezzo??''))}"${r.prezzo?' data-manual="1"':''} oninput="this.dataset.manual=1;vTot(this.form)"></div></div>
+      <div class="fgrp"><label>${t('Prezzo')} ${curSym()}</label><input name="r_prezzo" inputmode="decimal" value="${esc(itNum(r.prezzo??''))}"${r.prezzo?' data-manual="1"':''} oninput="this.dataset.manual=1;vTot(this.form)"></div></div>
     <div class="vriga-f"><span class="vsub"></span><button type="button" class="btn-sm btn-del" onclick="vDel(this)">Rimuovi</button></div>
   </div>`
 }
@@ -1572,7 +4968,7 @@ function rRiep(){
   Sp.forEach(s=>{const c=s.categoria||'Non indicata';perCat[c]=(perCat[c]||0)+num(s.importo)
     const m=(s.data||'').slice(5,7);if(m)(perMese[m]=perMese[m]||{v:0,s:0}).s+=num(s.importo)})
   const bars=o=>Object.entries(o).filter(e=>e[1]>0).sort((x,z)=>z[1]-x[1]).map(([l,v])=>({l,v}))
-  const MESI=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic']
+  const MESI=[...Array(12)].map((_,i)=>new Intl.DateTimeFormat(LOC,{month:'short',timeZone:'UTC'}).format(Date.UTC(2000,i,1)).replace('.',''))
   const mag=magazzino().filter(m=>m.racc||m.vend)
   const k=(lbl,v)=>`<div>${lbl}<b>${v}</b></div>`
   const per=ecoYear==='tutti'?'in totale':'nel '+ecoYear
@@ -1694,7 +5090,9 @@ function openM(type,id=null,preset={}){
   if(type==='arnia'&&!id)d._suggestId=nextArniaId()
   document.getElementById('m-title').textContent=(id?'Modifica ':['trattamento','spostamento','cliente'].includes(type)?'Nuovo ':'Nuova ')+(TITLES[type]||type)
   const body=document.getElementById('m-body')
-  body.innerHTML=buildF(type,d)
+  // pesi mostrati nel modulo nell'unità scelta (kg o lb)
+  const dd=(type==='produzione'||type==='listino')&&U()==='lb'?{...d,kg:uStr(d.kg)}:d
+  body.innerHTML=buildF(type,dd)
   const form=body.querySelector&&body.querySelector('form')
   if(form&&type==='vendita')vTot(form)
   document.getElementById('overlay').classList.add('on')
@@ -1730,7 +5128,13 @@ function autoColor(inp){
   if(!sel||sel.dataset.manual==='1')return
   sel.value=qColor(inp.value)
 }
-function fs(k,d,opts){const v=d[k]||'';return`<select name="${k}">${opts.map(o=>`<option value="${o}"${v===o?' selected':''}>${o||'— seleziona —'}</option>`).join('')}</select>`}
+const FARMACI={
+  EU:['Api-Bioxal (ossalico)','Api-Bioxal sublimazione','Oxybee (ossalico)','VarroMed','Apivar (amitraz)','Thymovar (timolo)','ApiLife Var','Apiguard (timolo)',
+    'MAQS (formico)','Formic Pro (formico)','PolyVar Yellow (flumetrina)','Bayvarol (flumetrina)'],
+  AM:['Apivar (amitraz)','Api-Bioxal (ossalico)','Formic Pro (formico)','MAQS (formico)','HopGuard 3','Apiguard (timolo)','ApiLife Var','Apistan (fluvalinate)','CheckMite+ (coumaphos)'],
+  OC:['Apivar (amitraz)','Bayvarol (flumetrina)','Apistan (fluvalinate)','Api-Bioxal (ossalico)','Formic Pro (formico)','Apiguard (timolo)','ApiLife Var'],
+}
+function fs(k,d,opts){const v=d[k]||'';if(v&&!opts.includes(v))opts=[...opts,v];return`<select name="${k}">${opts.map(o=>`<option value="${o}"${v===o?' selected':''}>${o||'— seleziona —'}</option>`).join('')}</select>`}
 function ft(k,d,ph=''){return`<textarea name="${k}" placeholder="${ph}">${esc(d[k]??'')}</textarea>`}
 function fg(lbl,body,full=false){return`<div class="fgrp${full?' full':''}"><label>${lbl}</label>${body}</div>`}
 function fgrid(cols){return`<div class="fgrid">${cols}</div>`}
@@ -1759,11 +5163,11 @@ function buildF(type,d){
     fgrid(fg('Data Inizio',fi('dataInizio',d,'date'))+fg('Data Fine',fi('dataFine',d,'date')))+
     fg('Arnia / Apiario',`${asel(d,true)}`)+
     fgrid(fg('Patologia',fs('parassita',d,['','Varroa','Nosema','Mal di maggio','Peste americana','Peste europea','Calcificazione','Aethina tumida','Altro']))+
-      fg('Prodotto',fs('prodotto',d,['','Api-Bioxal (ossalico)','Api-Bioxal sublimazione','Apivar (amitraz)','Thymovar (timolo)','ApiLife Var','MAQS (formico)','Acido formico','Altro'])))+
+      fg('Prodotto',fs('prodotto',d,['',...FARMACI[PAESI[paese()][2]],'Acido formico','Acido ossalico','Altro'])))+
     fgrid(fg('Principio Attivo',fi('principio',d))+fg('Dose / Modalità',fi('dose',d)))+
     fgrid(fg('Temperatura °C',fi('temp',d,'text','es. 18'))+fg('Efficacia %',fi('efficacia',d,'dec')))+
     `<div class="citem-sub" style="margin:16px 0 8px;font-weight:600;color:var(--amber)">📋 Dati per il registro trattamenti</div>`+
-    fgrid(fg('N° ricetta (REV)',fi('ricetta',d))+fg('Veterinario',fi('veterinario',d)))+
+    fgrid(fg(isIT()?'N° ricetta (REV)':'N° ricetta',fi('ricetta',d))+fg('Veterinario',fi('veterinario',d)))+
     fgrid(fg('Lotto farmaco',fi('lottoFarmaco',d))+fg('Scadenza farmaco',fi('scadFarmaco',d,'date')))+
     fgrid(fg('Quantità somministrata',fi('qtaFarmaco',d,'text','es. 2 strisce/arnia'))+fg('N° arnie trattate',fi('nArnie',d,'int','auto')))+
     fg('Tempo di sospensione (giorni)',fi('sospensione',d,'int','0 se nessuno'))+
@@ -1788,7 +5192,7 @@ function buildF(type,d){
     fg('Problemi Rilevati',ft('problemi',d))+fg('Interventi Eseguiti',ft('interventi',d)))
 
   if(type==='spesa') return wrap(
-    fgrid(fg('Data',fi('data',d,'date'))+fg('Importo €',fi('importo',d,'dec','0')))+
+    fgrid(fg('Data',fi('data',d,'date'))+fg(t('Importo')+' '+curSym(),fi('importo',d,'dec','0')))+
     fg('Descrizione',fi('descrizione',d,'text','es. Acquisto arnia'))+
     fg('Categoria',fs('categoria',d,['','Attrezzatura','Arnie / Nuclei','Regine','Medicinali / Trattamenti','Nutrizione','Miele e vasetti','Etichette e confezioni',
       'Analisi del miele','Trasporto','Assicurazione','Quote associative','Formazione','Altro']))+
@@ -1803,8 +5207,8 @@ function buildF(type,d){
     `<div class="citem-sub" style="margin:4px 0 8px;font-weight:600;color:var(--amber)">Prodotti venduti</div>`+
     (d.id?righeOf(d):(d.righe||[{}])).map(rigaHTML).join('')+
     `<button type="button" class="btn-sm" style="margin-bottom:14px" onclick="vAdd(this)">+ Aggiungi prodotto</button>`+
-    fgrid(fg('Sconto €',fi('sconto',d,'dec','0').replace('<input','<input oninput="vTot(this.form)"'))+
-      `<div class="fgrp"><label>Totale</label><div class="vtot-box"><b class="vtot">€ 0,00</b></div></div>`)+
+    fgrid(fg(t('Sconto')+' '+curSym(),fi('sconto',d,'dec','0').replace('<input','<input oninput="vTot(this.form)"'))+
+      `<div class="fgrp"><label>Totale</label><div class="vtot-box"><b class="vtot">${eur(0)}</b></div></div>`)+
     fgrid(fg('Incassato',fseg('pagato',d,['Sì','No'],'good'))+fg('Pagamento',fs('metodo',d,METODI)))+
     fg('Note',ft('note',d)))
 
@@ -1824,7 +5228,7 @@ function buildF(type,d){
   if(type==='listino') return wrap(
     `<datalist id="fmt-list">${['Vasetto 250 g','Vasetto 500 g','Vasetto 1 kg','Secchio 5 kg','Favo','Flacone propoli 30 ml'].map(f=>`<option value="${f}">`).join('')}</datalist>`+
     fgrid(fg('Formato',fi('formato',d,'text','es. Vasetto 500 g').replace('<input','<input list="fmt-list"'))+fg('Peso miele (kg)',fi('kg',d,'dec','es. 0,5')))+
-    fgrid(fg('Tipo di miele',fs('tipoMiele',d,TIPI_MIELE).replace('— seleziona —','Tutti i tipi'))+fg('Prezzo €',fi('prezzo',d,'dec','es. 7')))+
+    fgrid(fg('Tipo di miele',fs('tipoMiele',d,TIPI_MIELE).replace('— seleziona —','Tutti i tipi'))+fg(t('Prezzo')+' '+curSym(),fi('prezzo',d,'dec','es. 7')))+
     `<div class="citem-sub" style="margin-bottom:12px">Lascia "Tutti i tipi" per il prezzo base; aggiungi una voce con un tipo specifico (es. Acacia) se costa di più.</div>`)
 
   if(type==='nutrizione') return wrap(
@@ -1842,7 +5246,7 @@ function buildF(type,d){
     fgrid(fg('Data',fi('data',d,'date'))+fg('Arnia',asel(d,true,'arniaId','— Tutte le arnie attive —')))+
     fgrid(fg('Da (postazione)',fi('da',d,'text','tutte').replace('<input','<input list="pos-list"'))+fg('A (postazione)',fi('a',d).replace('<input','<input list="pos-list"')))+
     fg('Motivo',fi('motivo',d,'text','es. fioritura acacia'))+
-    fg('Comunicato in BDA',fseg('bda',d,['Sì','No'],'good'))+
+    (isIT()?fg('Comunicato in BDA',fseg('bda',d,['Sì','No'],'good')):'')+
     (d.arnie&&d.arnie.length?`<div class="citem-sub" style="margin-bottom:12px">Arnie spostate: ${d.arnie.map(esc).join(', ')}</div>`:'')+
     fg('Note',ft('note',d)))
 
@@ -1856,6 +5260,7 @@ function submitF(e,type){
   const rows={} // campi ripetuti delle righe di vendita (r_prodotto, r_qta, …)
   fd.forEach((v,k)=>{if(k.startsWith('r_'))(rows[k]=rows[k]||[]).push(...[].concat(v));else data[k]=v})
   NUM_F.forEach(k=>{if(typeof data[k]==='string')data[k]=data[k].trim().replace(',','.')})
+  if((type==='produzione'||type==='listino')&&U()==='lb'&&data.kg)data.kg=String(Math.round(fromU(data.kg)*1000)/1000)
   const coll=COLL[type]
   if(type==='vendita'){
     const n=(rows.r_prodotto||[]).length
@@ -1863,7 +5268,11 @@ function submitF(e,type){
       qta:String((rows.r_qta||[])[i]??'').trim().replace(',','.'),prezzo:String((rows.r_prezzo||[])[i]??'').trim().replace(',','.')}))
       .filter(r=>num(r.qta)||num(r.prezzo))
     if(!data.righe.length){alert('Aggiungi almeno un prodotto con quantità e prezzo');return}
+    // totale sui valori inseriti (prima di convertire le libbre)
     data.importo=String(round2(Math.max(0,data.righe.reduce((s,r)=>s+num(r.qta)*num(r.prezzo),0)-num(data.sconto))))
+    // sfuso in libbre: in archivio quantità in kg e prezzo al kg, con 6 decimali (il subtotale non cambia)
+    const r6=x=>String(Math.round(x*1e6)/1e6)
+    data.righe=data.righe.map(r=>r.formato===SFUSO&&U()==='lb'?{...r,qta:r6(fromU(r.qta)),prezzo:r6(num(r.prezzo)/LB)}:r)
     data.acquirente=(data.acquirente||'').trim()
     // cliente già in anagrafica: usa il nome scritto lì; se è nuovo, aggiungilo
     const cli=findCliente(data.acquirente)
@@ -1919,7 +5328,7 @@ function submitF(e,type){
   save();closeM();render(curSec)
 }
 
-load();rDash()
+load();initI18n();rDash()
 </script>
 
 <script>

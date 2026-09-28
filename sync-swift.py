@@ -55,6 +55,7 @@ BRIDGE = """\
   // WKWebView ignora download di blob e window.print(): li gestisce il nativo
   if(h.exportFile)exportFile=function(name,text){h.exportFile.postMessage({name:name,text:text})}
   if(h.print)stampa=function(){h.print.postMessage('')}
+  if(h.lang)h.lang.postMessage(LANG)
   // Avvio: unisci con la copia in iCloud iniettata dal nativo (o inviala se iCloud è vuoto)
   if(window.__REMOTE_DB__)syncMerge(window.__REMOTE_DB__);else syncPush()
 })()
