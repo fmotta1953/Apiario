@@ -195,6 +195,30 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 .legend{display:flex;gap:14px;font-size:.78rem;color:var(--text2);margin-bottom:4px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 
+/* ── ECONOMIA ── */
+.itabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.itab{white-space:nowrap;padding:8px 10px}
+.yr-sel{padding:6px 10px;border:1px solid var(--sep);border-radius:10px;background:var(--white);font-size:.85rem;color:var(--text)}
+.chk{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--text2)}
+.chk input{width:18px;height:18px;accent-color:var(--amber)}
+.vriga{border:1.5px dashed var(--sep);border-radius:14px;padding:10px 12px 6px;margin-bottom:10px}
+.vriga .fgrp{margin-bottom:8px}
+.vriga-3{display:grid;grid-template-columns:1.4fr .7fr 1fr;gap:10px}
+.vriga-f{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.vsub{font-size:.88rem;font-weight:600;color:var(--amber)}
+.vtot-box{padding:12px 14px;border-radius:12px;background:var(--honey-d);font-size:1.15rem;text-align:right;color:var(--amber)}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;font-size:.8rem;color:var(--text2)}
+.kpi b{display:block;font-size:1.05rem;color:var(--text);font-variant-numeric:tabular-nums}
+.mag{width:100%;border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums}
+.mag th,.mag td{padding:7px 4px;border-bottom:1px solid var(--sep);text-align:right}
+.mag th{font-size:.75rem;color:var(--text2);font-weight:600}
+.mag th:first-child,.mag td:first-child{text-align:left}
+.mag td.low{color:var(--red);font-weight:700}
+.stat.eco .stat-val{font-size:1.35rem}
+.amt{font-weight:700;font-size:1.02rem;white-space:nowrap;text-align:right}
+.amt.g{color:var(--green)}.amt.r{color:var(--red)}
+.chart.lbl-w .hb-row{grid-template-columns:minmax(96px,34%) 1fr auto}
+
 /* ── REGISTRO TRATTAMENTI ── */
 .reg-head{background:var(--white);border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);font-size:.85rem;line-height:1.6}
 .reg-head b{color:var(--amber)}
@@ -254,7 +278,8 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   .menu-grid{grid-template-columns:repeat(4,1fr)}
   .det-b{margin-top:8px}
   .det-a .stats{grid-template-columns:1fr 1fr}
-  #stat-body{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+  #stat-body,.eco-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+  .eco-grid .chart{margin:0}
   #stat-body .chart{margin:0}
   #s-impostazioni .clist{max-width:720px}
   .overlay{align-items:center;justify-content:center}
@@ -278,7 +303,8 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 @media print{
   .topbar,.bnav,.btn-add,.btn-print,.btn-sm,.search-wrap,.overlay,.btn-back,.qact,.chev,#dash-todo{display:none!important}
   body{padding:0!important;background:#fff}
-  .lgrid,#dash-list,.det-grid,#stat-body{display:block!important}
+  .lgrid,#dash-list,.det-grid,#stat-body,.eco-grid{display:block!important}
+  #eco-tabs,.chk,#eco-year{display:none!important}
   .sec{display:none!important;padding:0}
   .sec.on{display:block!important}
   .clist,.citem{box-shadow:none;border-radius:0}
@@ -299,7 +325,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 
 <div class="topbar" style="display:flex;align-items:center;justify-content:space-between">
   <h1>🐝 Gestione Apiario</h1>
-  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v17</span>
+  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v18</span>
 </div>
 
 <main>
@@ -384,31 +410,43 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 <div id="s-economia" class="sec">
   <div class="sec-hdr">
     <h2>Economia</h2>
-    <button class="btn-print" onclick="stampa()">🖨️</button>
-  </div>
-  <div class="itabs">
-    <button class="itab on" id="etab-spese" onclick="eTab('spese')">💸 Spese</button>
-    <button class="itab" id="etab-vendite" onclick="eTab('vendite')">💰 Vendite</button>
-  </div>
-  <!-- SPESE -->
-  <div id="epanel-spese">
-    <div id="etot-spese" class="total-row"><span class="lbl">Totale spese</span><span class="val r" id="tot-spese-val">€ 0,00</span></div>
-    <div class="sec-hdr" style="margin-bottom:8px">
-      <span></span>
-      <button class="btn-add" onclick="openM('spesa')">+ Nuova</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="eco-year" class="yr-sel" onchange="ecoYear=this.value;rEconomia()"></select>
+      <button class="btn-print" onclick="stampa()">🖨️</button>
     </div>
-    <div class="search-wrap"><input placeholder="Cerca…" oninput="rSpese(this.value)"></div>
+  </div>
+  <div class="itabs" id="eco-tabs">
+    <button class="itab on" id="etab-riepilogo" onclick="eTab('riepilogo')">Riepilogo</button>
+    <button class="itab" id="etab-vendite" onclick="eTab('vendite')">Vendite</button>
+    <button class="itab" id="etab-spese" onclick="eTab('spese')">Spese</button>
+    <button class="itab" id="etab-clienti" onclick="eTab('clienti')">Clienti</button>
+    <button class="itab" id="etab-listino" onclick="eTab('listino')">Listino</button>
+  </div>
+  <div id="epanel-riepilogo"></div>
+  <div id="epanel-vendite" style="display:none">
+    <div class="sec-hdr" style="margin-bottom:8px">
+      <label class="chk"><input type="checkbox" id="v-unpaid" onchange="rVendite()"> Solo da incassare</label>
+      <button class="btn-add" onclick="openM('vendita')">+ Vendita</button>
+    </div>
+    <div class="search-wrap"><input id="q-vendite" placeholder="Cerca cliente, prodotto…" oninput="rVendite()"></div>
+    <div id="list-vendite" class="lgrid"></div>
+  </div>
+  <div id="epanel-spese" style="display:none">
+    <div class="sec-hdr" style="margin-bottom:8px">
+      <label class="chk"><input type="checkbox" id="s-unpaid" onchange="rSpese()"> Solo da pagare</label>
+      <button class="btn-add" onclick="openM('spesa')">+ Spesa</button>
+    </div>
+    <div class="search-wrap"><input id="q-spese" placeholder="Cerca descrizione, fornitore…" oninput="rSpese()"></div>
     <div id="list-spese" class="lgrid"></div>
   </div>
-  <!-- VENDITE -->
-  <div id="epanel-vendite" style="display:none">
-    <div id="etot-vendite" class="total-row"><span class="lbl">Totale vendite</span><span class="val g" id="tot-vendite-val">€ 0,00</span></div>
-    <div class="sec-hdr" style="margin-bottom:8px">
-      <span></span>
-      <button class="btn-add" onclick="openM('vendita')">+ Nuova</button>
-    </div>
-    <div class="search-wrap"><input placeholder="Cerca…" oninput="rVendite(this.value)"></div>
-    <div id="list-vendite" class="lgrid"></div>
+  <div id="epanel-clienti" style="display:none">
+    <div class="sec-hdr" style="margin-bottom:8px"><span></span><button class="btn-add" onclick="openM('cliente')">+ Cliente</button></div>
+    <div class="search-wrap"><input id="q-clienti" placeholder="Cerca cliente…" oninput="rClienti()"></div>
+    <div id="list-clienti" class="lgrid"></div>
+  </div>
+  <div id="epanel-listino" style="display:none">
+    <div class="sec-hdr" style="margin-bottom:8px"><span class="citem-sub">Prezzi proposti in automatico nelle vendite</span><button class="btn-add" onclick="openM('listino')">+ Formato</button></div>
+    <div id="list-listino" class="lgrid"></div>
   </div>
 </div>
 
@@ -520,6 +558,8 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
         <input type="number" inputmode="decimal" min="0" id="set-varroaSoglia" onchange="setOpt('varroaSoglia',this.value)"></div>
       <div class="set-row"><span class="citem-sub">Soglia varroa con zucchero/alcol/CO₂ (% di infestazione)</span>
         <input type="number" inputmode="decimal" min="0" id="set-varroaSogliaPct" onchange="setOpt('varroaSogliaPct',this.value)"></div>
+      <div class="set-row"><span class="citem-sub">Avviso miele in esaurimento sotto (kg)</span>
+        <input type="number" inputmode="decimal" min="0" id="set-magSoglia" onchange="setOpt('magSoglia',this.value)"></div>
       <button class="btn-sm" style="margin-top:4px" onclick="resetDismissed()">Mostra di nuovo i promemoria nascosti</button>
     </div>
   </div>
@@ -580,10 +620,10 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 const KEY='apiario_v2'
 var db={arnie:[],regine:[],trattamenti:[],produzione:[],ispezioni:[],spese:[],vendite:[]}
 let eId=null,eType=null
-const DEF_SETTINGS={ispGiorni:14,varroaSoglia:10,varroaSogliaPct:3,apicoltore:'',codAzienda:'',codApiario:'',dismissed:{}}
+const DEF_SETTINGS={ispGiorni:14,varroaSoglia:10,varroaSogliaPct:3,magSoglia:5,apicoltore:'',codAzienda:'',codApiario:'',dismissed:{}}
 // tipo record → collezione in db
 const COLL={arnia:'arnie',regina:'regine',trattamento:'trattamenti',produzione:'produzione',ispezione:'ispezioni',spesa:'spese',vendita:'vendite',
-  nutrizione:'nutrizione',melario:'melari',spostamento:'spostamenti'}
+  nutrizione:'nutrizione',melario:'melari',spostamento:'spostamenti',cliente:'clienti',listino:'listino'}
 // collezioni con record legati a un'arnia (campo arniaId)
 const LINKED=['regine','trattamenti','produzione','ispezioni','nutrizione','melari','spostamenti']
 
@@ -1053,7 +1093,7 @@ function rStat(){
 }
 
 // ESPORTAZIONE CSV (separatore ; e virgola decimale, come si aspetta Excel in italiano)
-const CSV_LIST=[['arnie','Arnie'],['regine','Regine'],['trattamenti','Trattamenti'],['ispezioni','Ispezioni'],['produzione','Produzione'],
+const CSV_LIST=[['arnie','Arnie'],['regine','Regine'],['trattamenti','Trattamenti'],['ispezioni','Ispezioni'],['produzione','Produzione'],['clienti','Clienti'],['listino','Listino'],
   ['nutrizione','Nutrizione'],['melari','Melari'],['spostamenti','Spostamenti'],['spese','Spese'],['vendite','Vendite']]
 function toCSV(rows){
   const cols=[]
@@ -1061,14 +1101,18 @@ function toCSV(rows){
   const q=(k,v)=>{
     if(v==null)return''
     let s=Array.isArray(v)?v.join(', '):String(v)
-    if(NUM_F.includes(k)&&/^-?\d+(\.\d+)?$/.test(s))s=s.replace('.',',')
+    if((NUM_F.includes(k)||typeof v==='number'||k==='totaleVendita')&&/^-?\d+(\.\d+)?$/.test(s))s=s.replace('.',',')
     return/[;"\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s
   }
   return'﻿'+[cols.join(';'),...rows.map(r=>cols.map(k=>q(k,r[k])).join(';'))].join('\r\n')
 }
 function exportCSV(coll){
   if(!db[coll].length){alert('Nessun dato da esportare');return}
-  exportFile(`apiario_${coll}_${today()}.csv`,toCSV(db[coll]),'text/csv')
+  // vendite: una riga per ogni prodotto venduto, così in Excel si possono sommare quantità e importi
+  const rows=coll!=='vendite'?db[coll]:db.vendite.flatMap(v=>righeOf(v).map((r,i)=>({id:v.id,data:v.data||'',cliente:v.acquirente||'',canale:v.canale||'',
+    prodotto:r.prodotto,tipoMiele:r.tipoMiele||'',formato:r.formato||'',qta:r.qta,prezzo:r.prezzo,subtotale:round2(num(r.qta)*num(r.prezzo)),
+    totaleVendita:i===0?v.importo:'',sconto:i===0?(v.sconto||''):'',incassato:v.pagato||'Sì',pagamento:v.metodo||'',note:i===0?(v.note||''):''})))
+  exportFile(`apiario_${coll}_${today()}.csv`,toCSV(rows),'text/csv')
 }
 
 function setOpt(k,v){
@@ -1079,7 +1123,7 @@ function setTxt(k,v){db.settings[k]=String(v).trim();save()}
 function resetDismissed(){db.settings.dismissed={};save();alert('Promemoria ripristinati')}
 function rImpostazioni(){
   rSyncPanel()
-  ;['ispGiorni','varroaSoglia','varroaSogliaPct','apicoltore','codAzienda','codApiario'].forEach(k=>{const i=document.getElementById('set-'+k);if(i)i.value=db.settings[k]})
+  ;['ispGiorni','varroaSoglia','varroaSogliaPct','magSoglia','apicoltore','codAzienda','codApiario'].forEach(k=>{const i=document.getElementById('set-'+k);if(i)i.value=db.settings[k]})
   const cb=document.getElementById('csv-btns')
   if(cb)cb.innerHTML=CSV_LIST.map(([c,l])=>`<button class="btn-sm" onclick="exportCSV('${c}')">${l} (${db[c].length})</button>`).join('')
   const bks=getAutoBackups()
@@ -1163,6 +1207,23 @@ function todoItems(){
   if(md>='10-15')push(md>='12-15'?'r':'w','📋','Censimento BDA',
     `${md<'11-01'?'Dal 1° novembre':'Entro il 31/12'}: comunica le ${hives.length} arnie in Banca Dati Apistica`,{key:'bda-'+y,done:true})
 
+  // incassi e pagamenti
+  const unp=db.vendite.filter(v=>v.pagato==='No')
+  if(unp.length){
+    const oldest=unp.map(v=>v.data||T).sort()[0]
+    push(daysBetween(oldest,T)>30?'w':'i','💶',`Da incassare: ${eur(unp.reduce((s,v)=>s+num(v.importo),0))}`,
+      `${unp.length} ${unp.length===1?'vendita':'vendite'} · la più vecchia del ${fmt(oldest)}`,{act:"openEco('vendite',true)"})
+  }
+  const dp=db.spese.filter(s=>s.pagato==='No')
+  if(dp.length){
+    const late=dp.filter(s=>s.scadenza&&s.scadenza<T).length,soon=dp.filter(s=>s.scadenza&&s.scadenza>=T&&daysBetween(T,s.scadenza)<=7).length
+    push(late?'r':soon?'w':'i','🧾',`Spese da pagare: ${eur(dp.reduce((s,x)=>s+num(x.importo),0))}`,
+      `${dp.length} ${dp.length===1?'spesa':'spese'}${late?` · ${late} scadut${late===1?'a':'e'}`:soon?` · ${soon} in scadenza entro 7 giorni`:''}`,{act:"openEco('spese',true)"})
+  }
+  // magazzino miele
+  const low=magazzino().filter(m=>m.racc>0&&m.giac>0&&m.giac<=st.magSoglia)
+  if(low.length)push('i','🍯','Miele in esaurimento',low.map(m=>`${m.tipo}: ${itNum(round1(m.giac))} kg`).join(' · '),{act:"openEco('riepilogo')"})
+
   // regine vecchie
   const old=hives.filter(a=>{const q=curQueen(a.id);return q&&q.annoIntro&&y-parseInt(q.annoIntro)>=3})
   if(old.length)push('i','👑','Regine da rinnovare','Introdotte da 3 o più anni',{hives:old.map(a=>({id:a.id,lbl:curQueen(a.id).annoIntro}))})
@@ -1177,7 +1238,7 @@ function rTodo(){
   el.innerHTML=`<div class="sec-hdr"><h2>Da fare (${items.length})</h2></div><div class="clist todo">`+items.map(it=>{
     const chips=it.hives?`<div class="chips">${it.hives.map(x=>`<span class="badge ${it.lv==='r'?'bad':it.lv==='w'?'warn':'neu'}" onclick="openArnia(${jsq(x.id)})">${esc(x.id)}${x.lbl?' · '+esc(x.lbl):''}</span>`).join('')}</div>`:''
     const act=it.key?`<button class="btn-sm" onclick="event.stopPropagation();dismiss(${jsq(it.key)})">${it.done?'Fatto':'Nascondi'}</button>`:''
-    const tap=it.edit?` onclick="openM('${it.edit[0]}',${jsq(it.edit[1])})" style="cursor:pointer"`:''
+    const tap=it.edit?` onclick="openM('${it.edit[0]}',${jsq(it.edit[1])})" style="cursor:pointer"`:it.act?` onclick="${esc(it.act)}" style="cursor:pointer"`:''
     return`<div class="citem todo-${it.lv}"${tap}>
       <div class="tl-ico">${it.ico}</div>
       <div class="citem-left"><div class="citem-title tl-wrap">${esc(it.title)}</div>
@@ -1373,79 +1434,225 @@ function rIsp(q=''){
   document.getElementById('list-ispezioni').innerHTML=h||'<div class="empty">Nessuna ispezione</div>'
 }
 
-// ECONOMIA - tab switcher
-let eTabActive='spese'
-function eTab(t){
-  eTabActive=t
-  document.getElementById('etab-spese').classList.toggle('on',t==='spese')
-  document.getElementById('etab-vendite').classList.toggle('on',t==='vendite')
-  document.getElementById('epanel-spese').style.display=t==='spese'?'':'none'
-  document.getElementById('epanel-vendite').style.display=t==='vendite'?'':'none'
-}
-function rEconomia(){rSpese();rVendite()}
+// ECONOMIA
+const PRODOTTI=['Miele','Propoli','Cera','Polline','Pappa reale','Sciame','Nucleo','Regina','Contributo','Altro']
+const TIPI_MIELE=['','Millefiori','Acacia','Castagno','Tiglio','Girasole','Agrumi','Eucalipto','Melata','Altro']
+const CANALI=['','Diretta','Mercato','Negozio','Online','Omaggio/Autoconsumo','Altro']
+const METODI=['','Contanti','Bonifico','Carta/POS','Satispay','Altro']
+const SFUSO='Sfuso (kg)'
+function num(v){const n=parseFloat(String(v??'').replace(',','.'));return isNaN(n)?0:n}
+function round2(n){return Math.round(n*100)/100}
+function round1(n){return Math.round(n*10)/10}
+function eur(n){return'€ '+(n||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function eurS(n){return(n<0?'−':'')+eur(Math.abs(n))} // con segno, per saldi
+const sumBy=(l,f)=>l.reduce((s,x)=>s+(f(x)||0),0)
 
-// SPESE
-function rSpese(q=''){
-  const list=[...db.spese].sort((a,b)=>b.data>a.data?1:-1)
-    .filter(s=>!q||JSON.stringify(s).toLowerCase().includes(q.toLowerCase()))
-  const totale=db.spese.reduce((s,r)=>s+(parseFloat(r.importo)||0),0)
-  document.getElementById('tot-spese-val').textContent='€ '+totale.toFixed(2).replace('.',',')
-  let h=''
-  list.forEach(s=>{
-    const cb=s.categoria?bdg(s.categoria,'neu'):''
-    h+=`<div class="clist" style="margin-bottom:10px">
-      <div class="citem">
-        <div class="citem-left">
-          <div class="citem-title">${esc(s.descrizione)||'—'}</div>
-          <div class="citem-sub">${fmt(s.data)}${s.fornitore?' · '+esc(s.fornitore):''}</div>
-          <div class="citem-sub" style="margin-top:4px">${cb}</div>
-          ${s.note?`<div class="citem-sub" style="font-style:italic">${esc(s.note)}</div>`:''}
-        </div>
-        <div class="citem-right">
-          <div style="text-align:right;min-width:70px">
-            <div style="font-size:1.05rem;font-weight:700;color:var(--red)">€ ${parseFloat(s.importo||0).toFixed(2).replace('.',',')}</div>
-          </div>
-          <div class="citem-actions">
-            <button class="btn-sm" onclick="openM('spesa','${s.id}')">✏️</button>
-            <button class="btn-sm btn-del" onclick="del('spese','${s.id}','economia')">🗑</button>
-          </div>
-        </div>
-      </div>
-    </div>`
+// Listino: prezzo per formato, eventualmente specifico per tipo di miele
+function formati(){return[...new Set([...db.listino.map(l=>l.formato).filter(Boolean),SFUSO])]}
+function formatoKg(f){
+  const l=db.listino.find(x=>x.formato===f&&num(x.kg));if(l)return num(l.kg)
+  if(f===SFUSO)return 1
+  let m=String(f||'').match(/(\d+(?:[.,]\d+)?)\s*kg/i);if(m)return num(m[1])
+  m=String(f||'').match(/(\d+)\s*g\b/i);return m?parseInt(m[1])/1000:0
+}
+function prezzoListino(tipo,f){
+  const l=(tipo&&db.listino.find(x=>x.formato===f&&x.tipoMiele===tipo))||db.listino.find(x=>x.formato===f&&!x.tipoMiele)
+  return l?itNum(l.prezzo):''
+}
+// Righe di una vendita; le vendite registrate prima della v18 diventano una riga sola
+function righeOf(v){
+  if(Array.isArray(v.righe)&&v.righe.length)return v.righe
+  const m=String(v.quantita||'').match(/(\d+(?:[.,]\d+)?)\s*kg/i),kg=m?num(m[1]):0
+  return[{prodotto:v.prodotto||'Altro',tipoMiele:'',formato:kg?SFUSO:'',qta:String(kg||1),prezzo:String(kg?round2(num(v.importo)/kg):num(v.importo))}]
+}
+function rigaKg(r){return r.prodotto==='Miele'?num(r.qta)*formatoKg(r.formato):0}
+function righeTxt(v){
+  return righeOf(v).map(r=>{
+    const cosa=r.prodotto==='Miele'?(r.tipoMiele?'miele '+r.tipoMiele.toLowerCase():'miele'):r.prodotto.toLowerCase()
+    return r.formato===SFUSO?`${itNum(r.qta)} kg ${cosa}`:`${itNum(r.qta)}× ${r.formato?r.formato+' ':''}${cosa}`
+  }).join(', ')
+}
+
+// Riga prodotto nel form vendita
+function rigaHTML(r={}){
+  const opt=(list,v,ph)=>list.map(o=>`<option value="${esc(o)}"${o===v?' selected':''}>${o?esc(o):ph}</option>`).join('')
+  const fl=['',...formati()];if(r.formato&&!fl.includes(r.formato))fl.push(r.formato)
+  return`<div class="vriga">
+    <div class="fgrid"><div class="fgrp"><label>Prodotto</label><select name="r_prodotto" onchange="vPrice(this)">${opt(PRODOTTI,r.prodotto||'Miele','')}</select></div>
+      <div class="fgrp"><label>Tipo di miele</label><select name="r_tipoMiele" onchange="vPrice(this)">${opt(TIPI_MIELE,r.tipoMiele||'','—')}</select></div></div>
+    <div class="vriga-3"><div class="fgrp"><label>Formato</label><select name="r_formato" onchange="vPrice(this)">${opt(fl,r.formato||'','—')}</select></div>
+      <div class="fgrp"><label>Q.tà</label><input name="r_qta" inputmode="decimal" value="${esc(itNum(r.qta??'1'))}" oninput="vTot(this.form)"></div>
+      <div class="fgrp"><label>Prezzo €</label><input name="r_prezzo" inputmode="decimal" value="${esc(itNum(r.prezzo??''))}"${r.prezzo?' data-manual="1"':''} oninput="this.dataset.manual=1;vTot(this.form)"></div></div>
+    <div class="vriga-f"><span class="vsub"></span><button type="button" class="btn-sm btn-del" onclick="vDel(this)">Rimuovi</button></div>
+  </div>`
+}
+// cambiando prodotto/tipo/formato propone il prezzo di listino (se non l'hai scritto tu)
+function vPrice(el){
+  const row=el.closest('.vriga'),p=row.querySelector('[name=r_prezzo]')
+  if(p.dataset.manual!=='1')p.value=prezzoListino(row.querySelector('[name=r_tipoMiele]').value,row.querySelector('[name=r_formato]').value)
+  vTot(el.form)
+}
+function vAdd(btn){btn.insertAdjacentHTML('beforebegin',rigaHTML());vTot(btn.form)}
+function vDel(btn){const f=btn.form;if(f.querySelectorAll('.vriga').length>1)btn.closest('.vriga').remove();vTot(f)}
+function vTot(f){
+  let t=0
+  f.querySelectorAll('.vriga').forEach(r=>{
+    const s=num(r.querySelector('[name=r_qta]').value)*num(r.querySelector('[name=r_prezzo]').value)
+    r.querySelector('.vsub').textContent=s?eur(s):'';t+=s
   })
-  document.getElementById('list-spese').innerHTML=h||'<div class="empty">Nessuna spesa registrata</div>'
+  f.querySelector('.vtot').textContent=eur(Math.max(0,t-num(f.elements.sconto.value)))
+}
+
+// Clienti
+function findCliente(nome){const n=String(nome||'').trim().toLowerCase();return n?db.clienti.find(c=>(c.nome||'').trim().toLowerCase()===n):null}
+function dlistClienti(){
+  const names=[...new Set([...db.clienti.map(c=>c.nome),...db.vendite.map(v=>v.acquirente)].filter(Boolean))].sort((x,z)=>x.localeCompare(z,'it'))
+  return`<datalist id="cli-list">${names.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`
+}
+const sameName=(a,b)=>String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase()
+function clienteStats(nome){
+  const list=nome?db.vendite.filter(v=>sameName(v.acquirente,nome)).sort(byDateDesc('data')):[]
+  return{list,n:list.length,tot:sumBy(list,v=>num(v.importo)),aperto:sumBy(list.filter(v=>v.pagato==='No'),v=>num(v.importo))}
+}
+function importaClienti(){
+  const nuovi=[...new Set(db.vendite.map(v=>(v.acquirente||'').trim()).filter(n=>n&&!findCliente(n)))]
+  nuovi.forEach(n=>db.clienti.push({id:uid(),nome:n}));save();rClienti()
+}
+
+// Magazzino miele: kg raccolti (non scartati) − kg venduti, per tipo
+function magazzino(){
+  const m={},get=t=>m[t=t||'Non specificato']=m[t]||{tipo:t,racc:0,vend:0}
+  db.produzione.filter(p=>p.qualita!=='Scartata').forEach(p=>{get(p.tipoMiele).racc+=num(p.kg)})
+  db.vendite.forEach(v=>righeOf(v).forEach(r=>{if(r.prodotto==='Miele')get(r.tipoMiele).vend+=rigaKg(r)}))
+  return Object.values(m).map(x=>({...x,giac:x.racc-x.vend})).sort((x,z)=>z.racc-x.racc)
+}
+
+let ecoTab='riepilogo',ecoYear=String(new Date().getFullYear())
+const inYear=r=>ecoYear==='tutti'||(r.data||'').startsWith(ecoYear)
+const val=id=>{const e=document.getElementById(id);return e&&e.value?String(e.value):''}
+function eTab(t){
+  ecoTab=t
+  ;['riepilogo','vendite','spese','clienti','listino'].forEach(x=>{
+    document.getElementById('etab-'+x).classList.toggle('on',x===t)
+    document.getElementById('epanel-'+x).style.display=x===t?'':'none'
+  })
+  rEconomia()
+}
+function openEco(tab,soloAperti){
+  go('economia')
+  const c=document.getElementById(tab==='spese'?'s-unpaid':'v-unpaid');if(c&&soloAperti)c.checked=true
+  eTab(tab)
+}
+function rEconomia(){
+  const cy=String(new Date().getFullYear())
+  const ys=[...new Set([cy,...[...db.vendite,...db.spese].map(r=>(r.data||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y))])].sort().reverse()
+  const sel=document.getElementById('eco-year')
+  sel.innerHTML=[...ys,'tutti'].map(y=>`<option value="${y}"${y===ecoYear?' selected':''}>${y==='tutti'?'Tutti gli anni':y}</option>`).join('')
+  ;({riepilogo:rRiep,vendite:rVendite,spese:rSpese,clienti:rClienti,listino:rListino})[ecoTab]()
+}
+function setPagato(coll,id){const r=db[coll].find(x=>x.id===id);if(!r)return;r.pagato='Sì';save();render(curSec)}
+
+// RIEPILOGO
+function rRiep(){
+  const V=db.vendite.filter(inYear),Sp=db.spese.filter(inYear)
+  const entr=sumBy(V,v=>num(v.importo)),usc=sumBy(Sp,s=>num(s.importo)),utile=entr-usc
+  const daInc=sumBy(db.vendite.filter(v=>v.pagato==='No'),v=>num(v.importo)),daPag=sumBy(db.spese.filter(s=>s.pagato==='No'),s=>num(s.importo))
+  const att=db.arnie.filter(isAlive).length
+  const kgRacc=sumBy(db.produzione.filter(p=>p.qualita!=='Scartata'&&inYear(p)),p=>num(p.kg))
+  // importi per prodotto/canale: ogni riga pesa per la sua quota del totale (lo sconto si spalma)
+  const perProd={},perCan={},perCat={},perMese={}
+  let kgVend=0,ricMiele=0
+  V.forEach(v=>{
+    const rr=righeOf(v),lordo=sumBy(rr,r=>num(r.qta)*num(r.prezzo)),k=lordo?num(v.importo)/lordo:0
+    rr.forEach(r=>{const imp=num(r.qta)*num(r.prezzo)*k;perProd[r.prodotto]=(perProd[r.prodotto]||0)+imp
+      if(r.prodotto==='Miele'){kgVend+=rigaKg(r);ricMiele+=imp}})
+    const c=v.canale||'Non indicato';perCan[c]=(perCan[c]||0)+num(v.importo)
+    const m=(v.data||'').slice(5,7);if(m)(perMese[m]=perMese[m]||{v:0,s:0}).v+=num(v.importo)
+  })
+  Sp.forEach(s=>{const c=s.categoria||'Non indicata';perCat[c]=(perCat[c]||0)+num(s.importo)
+    const m=(s.data||'').slice(5,7);if(m)(perMese[m]=perMese[m]||{v:0,s:0}).s+=num(s.importo)})
+  const bars=o=>Object.entries(o).filter(e=>e[1]>0).sort((x,z)=>z[1]-x[1]).map(([l,v])=>({l,v}))
+  const MESI=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic']
+  const mag=magazzino().filter(m=>m.racc||m.vend)
+  const k=(lbl,v)=>`<div>${lbl}<b>${v}</b></div>`
+  const per=ecoYear==='tutti'?'in totale':'nel '+ecoYear
+  document.getElementById('epanel-riepilogo').innerHTML=`
+    <div class="stats">
+      <div class="stat g eco"><div class="stat-val">${eur(entr)}</div><div class="stat-lbl">Entrate ${per}</div></div>
+      <div class="stat r eco"><div class="stat-val">${eur(usc)}</div><div class="stat-lbl">Uscite ${per}</div></div>
+      <div class="stat ${utile>=0?'g':'r'} eco"><div class="stat-val">${eurS(utile)}</div><div class="stat-lbl">${utile>=0?'Utile':'Perdita'} ${per}</div></div>
+      <div class="stat b eco" style="cursor:pointer" onclick="openEco('vendite',true)"><div class="stat-val">${eur(daInc)}</div><div class="stat-lbl">Da incassare</div></div>
+      <div class="stat r eco" style="cursor:pointer" onclick="openEco('spese',true)"><div class="stat-val">${eur(daPag)}</div><div class="stat-lbl">Da pagare</div></div>
+    </div>
+    <div class="eco-grid">
+      <div class="chart"><h3>Indicatori ${per}</h3><div class="kpi">
+        ${k('Miele raccolto',itNum(round1(kgRacc))+' kg')}${k('Miele venduto',itNum(round1(kgVend))+' kg')}
+        ${k('Prezzo medio miele',kgVend?eur(ricMiele/kgVend)+'/kg':'—')}${k('Costo per kg prodotto',kgRacc?eur(usc/kgRacc)+'/kg':'—')}
+        ${k('Ricavo per arnia',att?eur(entr/att):'—')}${k('Costo per arnia',att?eur(usc/att):'—')}
+      </div><div class="citem-sub" style="margin-top:8px">Per arnia: su ${att} arnie attive oggi</div></div>
+      <div class="chart"><h3>Magazzino miele</h3>${mag.length?`<table class="mag"><thead><tr><th>Tipo</th><th>Raccolto</th><th>Venduto</th><th>Giacenza</th></tr></thead><tbody>${
+        mag.map(m=>`<tr><td>${esc(m.tipo)}</td><td>${itNum(round1(m.racc))} kg</td><td>${itNum(round1(m.vend))} kg</td>
+          <td class="${m.giac<=db.settings.magSoglia?'low':''}">${itNum(round1(m.giac))} kg</td></tr>`).join('')}</tbody></table>
+        <div class="citem-sub" style="margin-top:8px">Totale di tutti gli anni · in rosso sotto ${itNum(db.settings.magSoglia)} kg (Impostazioni)</div>`
+        :'<div class="citem-sub">Registra raccolte e vendite di miele per vedere le giacenze</div>'}</div>
+      <div class="chart lbl-w"><h3>Spese per categoria</h3>${bars(perCat).length?hbars(bars(perCat),eur,'s2'):'<div class="citem-sub">Nessuna spesa</div>'}</div>
+      <div class="chart lbl-w"><h3>Entrate per prodotto</h3>${bars(perProd).length?hbars(bars(perProd),eur,'s1'):'<div class="citem-sub">Nessuna vendita</div>'}</div>
+      <div class="chart lbl-w"><h3>Entrate per canale</h3>${bars(perCan).length?hbars(bars(perCan),eur,'s1'):'<div class="citem-sub">Nessuna vendita</div>'}</div>
+      ${ecoYear!=='tutti'&&Object.keys(perMese).length?`<div class="chart"><h3>Mese per mese</h3>
+        <div class="legend"><span><i class="hb-bar s1"></i>Entrate</span><span><i class="hb-bar s2"></i>Uscite</span></div>
+        ${Object.keys(perMese).sort().map(m=>`<div class="hb-glbl">${MESI[+m-1]}<span>saldo ${eurS(perMese[m].v-perMese[m].s)}</span></div>`+
+          hbars([{l:'Entrate',v:perMese[m].v,cls:'s1'},{l:'Uscite',v:perMese[m].s,cls:'s2'}],eur)).join('')}</div>`:''}
+    </div>`
 }
 
 // VENDITE
-function rVendite(q=''){
-  const list=[...db.vendite].sort((a,b)=>b.data>a.data?1:-1)
-    .filter(v=>!q||JSON.stringify(v).toLowerCase().includes(q.toLowerCase()))
-  const totale=db.vendite.reduce((s,r)=>s+(parseFloat(r.importo)||0),0)
-  document.getElementById('tot-vendite-val').textContent='€ '+totale.toFixed(2).replace('.',',')
-  let h=''
-  list.forEach(v=>{
-    const pb=v.prodotto?bdg(v.prodotto,'ok'):''
-    h+=`<div class="clist" style="margin-bottom:10px">
-      <div class="citem">
-        <div class="citem-left">
-          <div class="citem-title">${esc(v.acquirente)||'—'}</div>
-          <div class="citem-sub">${fmt(v.data)}${v.quantita?' · '+esc(v.quantita):''}</div>
-          <div class="citem-sub" style="margin-top:4px">${pb}</div>
-          ${v.note?`<div class="citem-sub" style="font-style:italic">${esc(v.note)}</div>`:''}
-        </div>
-        <div class="citem-right">
-          <div style="text-align:right;min-width:70px">
-            <div style="font-size:1.05rem;font-weight:700;color:var(--green)">€ ${parseFloat(v.importo||0).toFixed(2).replace('.',',')}</div>
-          </div>
-          <div class="citem-actions">
-            <button class="btn-sm" onclick="openM('vendita','${v.id}')">✏️</button>
-            <button class="btn-sm btn-del" onclick="del('vendite','${v.id}','economia')">🗑</button>
-          </div>
-        </div>
-      </div>
-    </div>`
-  })
-  document.getElementById('list-vendite').innerHTML=h||'<div class="empty">Nessuna vendita registrata</div>'
+function rVendite(){
+  const q=val('q-vendite').toLowerCase(),solo=(document.getElementById('v-unpaid')||{}).checked
+  const l=db.vendite.filter(inYear).filter(v=>!solo||v.pagato==='No')
+    .filter(v=>!q||(JSON.stringify(v)+righeTxt(v)).toLowerCase().includes(q)).sort(byDateDesc('data'))
+  document.getElementById('list-vendite').innerHTML=
+    `<div class="total-row"><span class="lbl">${l.length} ${l.length===1?'vendita':'vendite'}${solo?' da incassare':''}</span><span class="val g">${eur(sumBy(l,v=>num(v.importo)))}</span></div>`+
+    (l.map(v=>rowCard('vendita',v,esc(v.acquirente)||'—',
+      [fmt(v.data)+[v.canale,v.metodo].filter(Boolean).map(x=>' · '+esc(x)).join(''),esc(righeTxt(v)),
+       v.pagato==='No'?bdg('Da incassare','warn'):'',v.note?`<i>${esc(v.note)}</i>`:''],
+      `<div class="amt g">${eur(num(v.importo))}</div>`+(v.pagato==='No'?`<button class="btn-sm" onclick="setPagato('vendite',${jsq(v.id)})">Incassata</button>`:''),'economia')).join('')
+    ||'<div class="empty">Nessuna vendita</div>')
+}
+// SPESE
+function rSpese(){
+  const q=val('q-spese').toLowerCase(),solo=(document.getElementById('s-unpaid')||{}).checked,T=today()
+  const l=db.spese.filter(inYear).filter(s=>!solo||s.pagato==='No').filter(s=>!q||JSON.stringify(s).toLowerCase().includes(q)).sort(byDateDesc('data'))
+  document.getElementById('list-spese').innerHTML=
+    `<div class="total-row"><span class="lbl">${l.length} ${l.length===1?'spesa':'spese'}${solo?' da pagare':''}</span><span class="val r">${eur(sumBy(l,s=>num(s.importo)))}</span></div>`+
+    (l.map(s=>rowCard('spesa',s,esc(s.descrizione)||'—',
+      [fmt(s.data)+[s.fornitore,s.metodo].filter(Boolean).map(x=>' · '+esc(x)).join(''),s.categoria?bdg(s.categoria,'neu'):'',
+       s.pagato==='No'?bdg(s.scadenza?(s.scadenza<T?'Scaduta il ':'Da pagare entro il ')+fmt(s.scadenza):'Da pagare',s.scadenza&&s.scadenza<T?'bad':'warn'):'',
+       s.note?`<i>${esc(s.note)}</i>`:''],
+      `<div class="amt r">${eur(num(s.importo))}</div>`+(s.pagato==='No'?`<button class="btn-sm" onclick="setPagato('spese',${jsq(s.id)})">Pagata</button>`:''),'economia')).join('')
+    ||'<div class="empty">Nessuna spesa</div>')
+}
+// CLIENTI
+function rClienti(){
+  const q=val('q-clienti').toLowerCase()
+  const mancanti=[...new Set(db.vendite.map(v=>(v.acquirente||'').trim()).filter(n=>n&&!findCliente(n)))]
+  const l=db.clienti.filter(c=>!q||JSON.stringify(c).toLowerCase().includes(q)).map(c=>({c,s:clienteStats(c.nome)})).sort((x,z)=>z.s.tot-x.s.tot)
+  document.getElementById('list-clienti').innerHTML=
+    (mancanti.length?`<div class="reg-warn">${mancanti.length} acquirenti delle vendite non sono in anagrafica.
+      <button class="btn-sm" onclick="importaClienti()">Aggiungili</button></div>`:'')+
+    (l.map(({c,s})=>rowCard('cliente',c,esc(c.nome),
+      [[c.telefono,c.email].filter(Boolean).map(esc).join(' · '),s.n?`${s.n} acquist${s.n===1?'o':'i'} · ${eur(s.tot)}`:'Nessun acquisto',
+       s.aperto?bdg('Da incassare '+eur(s.aperto),'warn'):''],'','economia')).join('')
+    ||'<div class="empty">Nessun cliente: si aggiungono da soli quando registri una vendita</div>')
+}
+// LISTINO
+const LISTINO_BASE=[['Vasetto 250 g','0.25','4'],['Vasetto 500 g','0.5','7'],['Vasetto 1 kg','1','12']]
+function caricaListinoBase(){LISTINO_BASE.forEach(([formato,kg,prezzo])=>{if(!db.listino.some(l=>l.formato===formato&&!l.tipoMiele))db.listino.push({id:uid(),formato,kg,tipoMiele:'',prezzo})});save();rListino()}
+function rListino(){
+  const l=[...db.listino].sort((x,z)=>formatoKg(x.formato)-formatoKg(z.formato)||(x.tipoMiele||'').localeCompare(z.tipoMiele||''))
+  document.getElementById('list-listino').innerHTML=l.map(x=>rowCard('listino',x,`${esc(x.formato)}${x.tipoMiele?' · '+esc(x.tipoMiele):''} · ${eur(num(x.prezzo))}`,
+      [num(x.kg)?`${itNum(x.kg)} kg · ${eur(num(x.prezzo)/num(x.kg))}/kg`:'',x.tipoMiele?'':'Prezzo base (tutti i tipi)'],'','economia')).join('')
+    ||`<div class="empty">Listino vuoto<br><button class="btn-sm" style="margin-top:10px" onclick="caricaListinoBase()">Carica i formati tipici (250 g, 500 g, 1 kg)</button>
+      <div class="citem-sub" style="margin-top:6px">Poi correggi i prezzi con i tuoi</div></div>`
 }
 
 // DELETE
@@ -1477,15 +1684,19 @@ function nextArniaId(){
 }
 // campo data principale per tipo: sui nuovi record viene pre-compilato con oggi
 const DATE_F={trattamento:'dataInizio',produzione:'data',ispezione:'data',spesa:'data',vendita:'data',nutrizione:'data',melario:'dataPosa',spostamento:'data'}
+const DEFAULTS={vendita:{pagato:'Sì',canale:'Diretta'},spesa:{pagato:'Sì'}}
 const TITLES={arnia:'arnia',regina:'regina',trattamento:'trattamento',produzione:'raccolta',ispezione:'ispezione',spesa:'spesa',vendita:'vendita',
-  nutrizione:'nutrizione',melario:'posa melari',spostamento:'spostamento'}
+  nutrizione:'nutrizione',melario:'posa melari',spostamento:'spostamento',cliente:'cliente',listino:'voce di listino'}
 function openM(type,id=null,preset={}){
   eType=type;eId=id
-  const d=id?getRec(type,id):{...(DATE_F[type]?{[DATE_F[type]]:today()}:{}),...preset}
+  const d=id?getRec(type,id):{...(DATE_F[type]?{[DATE_F[type]]:today()}:{}),...(DEFAULTS[type]||{}),...preset}
   // Pre-compila l'id suggerito per le nuove arnie
   if(type==='arnia'&&!id)d._suggestId=nextArniaId()
-  document.getElementById('m-title').textContent=(id?'Modifica ':['trattamento','spostamento'].includes(type)?'Nuovo ':'Nuova ')+(TITLES[type]||type)
-  document.getElementById('m-body').innerHTML=buildF(type,d)
+  document.getElementById('m-title').textContent=(id?'Modifica ':['trattamento','spostamento','cliente'].includes(type)?'Nuovo ':'Nuova ')+(TITLES[type]||type)
+  const body=document.getElementById('m-body')
+  body.innerHTML=buildF(type,d)
+  const form=body.querySelector&&body.querySelector('form')
+  if(form&&type==='vendita')vTot(form)
   document.getElementById('overlay').classList.add('on')
 }
 function closeM(){document.getElementById('overlay').classList.remove('on');eId=null;eType=null}
@@ -1579,15 +1790,42 @@ function buildF(type,d){
   if(type==='spesa') return wrap(
     fgrid(fg('Data',fi('data',d,'date'))+fg('Importo €',fi('importo',d,'dec','0')))+
     fg('Descrizione',fi('descrizione',d,'text','es. Acquisto arnia'))+
-    fg('Categoria',fs('categoria',d,['','Attrezzatura','Arnie / Nuclei','Regine','Medicinali / Trattamenti','Miele e vasetti','Trasporto','Formazione','Altro']))+
+    fg('Categoria',fs('categoria',d,['','Attrezzatura','Arnie / Nuclei','Regine','Medicinali / Trattamenti','Nutrizione','Miele e vasetti','Etichette e confezioni',
+      'Analisi del miele','Trasporto','Assicurazione','Quote associative','Formazione','Altro']))+
     fg('Fornitore',fi('fornitore',d))+
+    fgrid(fg('Pagata',fseg('pagato',d,['Sì','No'],'good'))+fg('Pagamento',fs('metodo',d,METODI)))+
+    fg('Scadenza (se da pagare)',fi('scadenza',d,'date'))+
     fg('Note',ft('note',d)))
 
-  if(type==='vendita') return wrap(
-    fgrid(fg('Data',fi('data',d,'date'))+fg('Importo €',fi('importo',d,'dec','0')))+
-    fg('Acquirente',fi('acquirente',d,'text','es. Mario Rossi'))+
-    fgrid(fg('Prodotto',fs('prodotto',d,['','Miele','Propoli','Cera','Sciame','Nucleo','Pappa reale','Polline','Altro']))+fg('Quantità',fi('quantita',d,'text','es. 3 kg')))+
+  if(type==='vendita') return wrap(dlistClienti()+
+    fgrid(fg('Data',fi('data',d,'date'))+fg('Canale',fs('canale',d,CANALI)))+
+    fg('Cliente',fi('acquirente',d,'text','es. Mario Rossi').replace('<input','<input list="cli-list" autocomplete="off"'))+
+    `<div class="citem-sub" style="margin:4px 0 8px;font-weight:600;color:var(--amber)">Prodotti venduti</div>`+
+    (d.id?righeOf(d):(d.righe||[{}])).map(rigaHTML).join('')+
+    `<button type="button" class="btn-sm" style="margin-bottom:14px" onclick="vAdd(this)">+ Aggiungi prodotto</button>`+
+    fgrid(fg('Sconto €',fi('sconto',d,'dec','0').replace('<input','<input oninput="vTot(this.form)"'))+
+      `<div class="fgrp"><label>Totale</label><div class="vtot-box"><b class="vtot">€ 0,00</b></div></div>`)+
+    fgrid(fg('Incassato',fseg('pagato',d,['Sì','No'],'good'))+fg('Pagamento',fs('metodo',d,METODI)))+
     fg('Note',ft('note',d)))
+
+  if(type==='cliente'){
+    const st=clienteStats(d.nome)
+    return wrap(
+      fg('Nome',fi('nome',d,'text','es. Mario Rossi'))+
+      fgrid(fg('Telefono',fi('telefono',d,'tel'))+fg('Email',fi('email',d,'email')))+
+      fg('Indirizzo',fi('indirizzo',d))+
+      fg('Note',ft('note',d,'es. preferisce acacia, ritira il sabato')))+
+      (d.id&&st.n?`<div class="citem-sub" style="margin:18px 0 6px;font-weight:600;color:var(--amber)">Acquisti: ${st.n} · ${eur(st.tot)}${st.aperto?' · da incassare '+eur(st.aperto):''}</div>
+        <div class="clist">${st.list.map(v=>`<div class="citem" style="cursor:default"><div class="citem-left">
+          <div class="citem-title">${fmt(v.data)} · ${eur(num(v.importo))}</div><div class="citem-sub tl-wrap">${esc(righeTxt(v))}</div></div>
+          <div class="citem-right">${v.pagato==='No'?bdg('Da incassare','warn'):''}</div></div>`).join('')}</div>`:'')
+  }
+
+  if(type==='listino') return wrap(
+    `<datalist id="fmt-list">${['Vasetto 250 g','Vasetto 500 g','Vasetto 1 kg','Secchio 5 kg','Favo','Flacone propoli 30 ml'].map(f=>`<option value="${f}">`).join('')}</datalist>`+
+    fgrid(fg('Formato',fi('formato',d,'text','es. Vasetto 500 g').replace('<input','<input list="fmt-list"'))+fg('Peso miele (kg)',fi('kg',d,'dec','es. 0,5')))+
+    fgrid(fg('Tipo di miele',fs('tipoMiele',d,TIPI_MIELE).replace('— seleziona —','Tutti i tipi'))+fg('Prezzo €',fi('prezzo',d,'dec','es. 7')))+
+    `<div class="citem-sub" style="margin-bottom:12px">Lascia "Tutti i tipi" per il prezzo base; aggiungi una voce con un tipo specifico (es. Acacia) se costa di più.</div>`)
 
   if(type==='nutrizione') return wrap(
     fgrid(fg('Data',fi('data',d,'date'))+fg('Arnia / Apiario',asel(d,true)))+
@@ -1611,13 +1849,35 @@ function buildF(type,d){
   return''
 }
 
-const NUM_F=['kg','umidita','importo','efficacia','varroa','temp','telaini','melari','annoNascita','annoIntro','qta','numero','sospensione','nArnie']
+const NUM_F=['kg','umidita','importo','efficacia','varroa','temp','telaini','melari','annoNascita','annoIntro','qta','numero','sospensione','nArnie','sconto','prezzo']
 function submitF(e,type){
   e.preventDefault()
   const fd=new FormData(e.target),data={}
-  fd.forEach((v,k)=>data[k]=v)
+  const rows={} // campi ripetuti delle righe di vendita (r_prodotto, r_qta, …)
+  fd.forEach((v,k)=>{if(k.startsWith('r_'))(rows[k]=rows[k]||[]).push(...[].concat(v));else data[k]=v})
   NUM_F.forEach(k=>{if(typeof data[k]==='string')data[k]=data[k].trim().replace(',','.')})
   const coll=COLL[type]
+  if(type==='vendita'){
+    const n=(rows.r_prodotto||[]).length
+    data.righe=[...Array(n)].map((_,i)=>({prodotto:rows.r_prodotto[i]||'',tipoMiele:(rows.r_tipoMiele||[])[i]||'',formato:(rows.r_formato||[])[i]||'',
+      qta:String((rows.r_qta||[])[i]??'').trim().replace(',','.'),prezzo:String((rows.r_prezzo||[])[i]??'').trim().replace(',','.')}))
+      .filter(r=>num(r.qta)||num(r.prezzo))
+    if(!data.righe.length){alert('Aggiungi almeno un prodotto con quantità e prezzo');return}
+    data.importo=String(round2(Math.max(0,data.righe.reduce((s,r)=>s+num(r.qta)*num(r.prezzo),0)-num(data.sconto))))
+    data.acquirente=(data.acquirente||'').trim()
+    // cliente già in anagrafica: usa il nome scritto lì; se è nuovo, aggiungilo
+    const cli=findCliente(data.acquirente)
+    if(cli)data.acquirente=cli.nome
+    else if(data.acquirente)db.clienti.push({id:uid(),nome:data.acquirente})
+  }
+  if(type==='cliente'){
+    data.nome=(data.nome||'').trim()
+    if(!data.nome){alert('Inserisci il nome del cliente');return}
+    const dup=findCliente(data.nome);if(dup&&dup.id!==eId){alert(`Esiste già un cliente "${dup.nome}"`);return}
+    // rinomina: aggiorna le vendite collegate
+    const old=eId&&getRec('cliente',eId).nome
+    if(old&&old!==data.nome)db.vendite.forEach(v=>{if(sameName(v.acquirente,old))v.acquirente=data.nome})
+  }
   if(type==='arnia'){
     data.id=(data.id||'').trim()
     if(!data.id){alert('Inserisci il numero/nome dell\'arnia');return}
