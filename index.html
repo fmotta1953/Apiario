@@ -41,11 +41,11 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   flex:1;background:none;border:none;cursor:pointer;
   padding:8px 2px 6px;display:flex;flex-direction:column;
   align-items:center;gap:1px;color:var(--text2);
-  min-height:48px;transition:color .15s;
+  min-height:56px;transition:color .15s;
 }
 .bnav button.active{color:var(--amber)}
-.bnav .bico{font-size:1.4rem;line-height:1}
-.bnav .blbl{font-size:9px;font-weight:500}
+.bnav .bico{font-size:1.6rem;line-height:1}
+.bnav .blbl{font-size:11px;font-weight:600}
 
 /* ── SECTIONS ── */
 .sec{display:none;padding:16px 16px 8px}.sec.on{display:block}
@@ -90,7 +90,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 .citem-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .citem-actions{display:flex;gap:6px}
 .btn-sm{background:none;border:1px solid var(--sep);cursor:pointer;
-  padding:5px 10px;border-radius:8px;font-size:.8rem}
+  padding:8px 12px;border-radius:10px;font-size:.9rem;min-width:40px;min-height:40px}
 .btn-del{color:var(--red);border-color:#FECACA}
 
 /* ── BADGES ── */
@@ -164,6 +164,23 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 .total-row .val{font-size:1.3rem;font-weight:700;color:var(--amber)}
 .total-row .val.r{color:var(--red)}.total-row .val.g{color:var(--green)}
 
+/* ── PULSANTI A SEGMENTI (form ispezione) ── */
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:48px;min-height:48px;padding:8px 6px;border:1.5px solid var(--sep);
+  border-radius:12px;background:var(--honey);color:var(--text);font-size:.95rem;font-weight:600;cursor:pointer}
+.seg button.on{background:var(--amber);border-color:var(--amber);color:var(--white)}
+.seg.good button.on[data-v="Sì"],.seg.good button.on[data-v="Regolare"],.seg.good button.on[data-v="No"][data-good]{background:var(--green);border-color:var(--green)}
+.seg.good button.on[data-v="No"]:not([data-good]),.seg.good button.on[data-v="Assente"],.seg.good button.on[data-v="Sciame emesso"]{background:var(--red);border-color:var(--red)}
+
+/* ── MENU ALTRO ── */
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.menu-grid button{background:var(--white);border:none;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);
+  padding:22px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;
+  font-size:1rem;font-weight:600;color:var(--amber)}
+.menu-grid button span{font-size:2rem;line-height:1}
+.menu-grid button small{font-size:.75rem;font-weight:500;color:var(--text2)}
+.menu-grid button:active{background:var(--honey-d)}
+
 /* ── SCHEDA ARNIA ── */
 .btn-back{background:none;border:none;cursor:pointer;color:var(--amber);
   font-size:1rem;font-weight:600;padding:6px 0}
@@ -211,7 +228,7 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 
 <div class="topbar" style="display:flex;align-items:center;justify-content:space-between">
   <h1>🐝 Gestione Apiario</h1>
-  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v13</span>
+  <span style="font-size:.65rem;color:var(--gold-l);opacity:.7">v14</span>
 </div>
 
 <main>
@@ -324,6 +341,12 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   </div>
 </div>
 
+<!-- ALTRO: sezioni meno usate sul campo -->
+<div id="s-altro" class="sec">
+  <div class="sec-hdr"><h2>Altro</h2></div>
+  <div class="menu-grid" id="altro-grid"></div>
+</div>
+
 <!-- SCHEDA ARNIA (non in nav: si apre toccando un'arnia) -->
 <div id="s-arnia" class="sec">
   <div class="sec-hdr">
@@ -380,18 +403,12 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
     <span class="bico">📊</span><span class="blbl">Dashboard</span></button>
   <button id="nav-arnie" onclick="go('arnie')">
     <span class="bico">🏠</span><span class="blbl">Arnie</span></button>
-  <button id="nav-regine" onclick="go('regine')">
-    <span class="bico">👑</span><span class="blbl">Regine</span></button>
-  <button id="nav-trattamenti" onclick="go('trattamenti')">
-    <span class="bico">💊</span><span class="blbl">Trattam.</span></button>
-  <button id="nav-produzione" onclick="go('produzione')">
-    <span class="bico">🍯</span><span class="blbl">Produz.</span></button>
   <button id="nav-ispezioni" onclick="go('ispezioni')">
     <span class="bico">🔍</span><span class="blbl">Ispezioni</span></button>
-  <button id="nav-economia" onclick="go('economia')">
-    <span class="bico">💰</span><span class="blbl">Economia</span></button>
-  <button id="nav-impostazioni" onclick="go('impostazioni')">
-    <span class="bico">⚙️</span><span class="blbl">Impost.</span></button>
+  <button id="nav-trattamenti" onclick="go('trattamenti')">
+    <span class="bico">💊</span><span class="blbl">Trattamenti</span></button>
+  <button id="nav-altro" onclick="go('altro')">
+    <span class="bico">☰</span><span class="blbl">Altro</span></button>
 </nav>
 
 <!-- MODAL -->
@@ -506,9 +523,25 @@ function go(sec){
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'))
   document.querySelectorAll('.bnav button').forEach(b=>b.classList.remove('active'))
   document.getElementById('s-'+sec).classList.add('on')
-  // nella scheda arnia resta evidenziata la sezione da cui si è arrivati
-  document.getElementById('nav-'+(sec==='arnia'?prevSec:sec)).classList.add('active')
+  document.getElementById('nav-'+navOf(sec)).classList.add('active')
   render(sec); window.scrollTo(0,0)
+}
+// voce della barra in basso da evidenziare per una sezione
+const IN_ALTRO=['altro','regine','produzione','economia','impostazioni']
+function navOf(sec){
+  // nella scheda arnia resta evidenziata la sezione da cui si è arrivati
+  if(sec==='arnia')sec=prevSec
+  return IN_ALTRO.includes(sec)?'altro':sec
+}
+function rAltro(){
+  const y=String(new Date().getFullYear())
+  const kg=db.produzione.filter(p=>p.data&&p.data.startsWith(y)).reduce((s,p)=>s+(parseFloat(p.kg)||0),0)
+  const tile=(sec,ico,lbl,sub)=>`<button onclick="go('${sec}')"><span>${ico}</span>${lbl}<small>${sub}</small></button>`
+  document.getElementById('altro-grid').innerHTML=
+    tile('regine','👑','Regine',db.regine.length+' registrate')+
+    tile('produzione','🍯','Produzione',kg.toFixed(1)+' kg nel '+y)+
+    tile('economia','💰','Economia',db.spese.length+db.vendite.length+' movimenti')+
+    tile('impostazioni','⚙️','Impostazioni','Backup e promemoria')
 }
 function openArnia(id){
   if(curSec!=='arnia'){prevSec=curSec;prevScroll=window.scrollY||0}
@@ -527,6 +560,7 @@ function render(sec){
   else if(sec==='economia')rEconomia()
   else if(sec==='impostazioni')rImpostazioni()
   else if(sec==='arnia')rArnia()
+  else if(sec==='altro')rAltro()
 }
 
 // SCHEDA ARNIA
@@ -1002,15 +1036,42 @@ function openM(type,id=null,preset={}){
   const d=id?getRec(type,id):{...(DATE_F[type]?{[DATE_F[type]]:today()}:{}),...preset}
   // Pre-compila l'id suggerito per le nuove arnie
   if(type==='arnia'&&!id)d._suggestId=nextArniaId()
-  document.getElementById('m-title').textContent=(id?'Modifica ':'Nuovo ')+
-    ({arnia:'Arnia',regina:'Regina',trattamento:'Trattamento',produzione:'Raccolta',ispezione:'Ispezione',spesa:'Spesa',vendita:'Vendita'}[type]||type)
+  document.getElementById('m-title').textContent=(id?'Modifica ':type==='trattamento'?'Nuovo ':'Nuova ')+
+    ({arnia:'arnia',regina:'regina',trattamento:'trattamento',produzione:'raccolta',ispezione:'ispezione',spesa:'spesa',vendita:'vendita'}[type]||type)
   document.getElementById('m-body').innerHTML=buildF(type,d)
   document.getElementById('overlay').classList.add('on')
 }
 function closeM(){document.getElementById('overlay').classList.remove('on');eId=null;eType=null}
 function getRec(type,id){return db[COLL[type]].find(r=>r.id===id)||{}}
 
-function fi(k,d,type='text',ph=''){return`<input type="${type}" name="${k}" value="${esc(d[k]??'')}" placeholder="${ph}">`}
+// type 'dec' = numero con decimali, 'int' = intero: campi di testo con il tastierino numerico
+// (type="number" su iPhone rifiuta la virgola decimale e perde il valore)
+function fi(k,d,type='text',ph=''){
+  const im=type==='dec'?' inputmode="decimal"':type==='int'?' inputmode="numeric" pattern="[0-9]*"':''
+  if(im)type='text'
+  return`<input type="${type}"${im} name="${k}" value="${esc(d[k]??'')}" placeholder="${ph}">`
+}
+// Pulsanti a segmenti: un tocco seleziona, un secondo tocco deseleziona
+function fseg(k,d,opts,cls=''){
+  const v=d[k]??''
+  if(v&&!opts.includes(v))opts=[...opts,v] // valore vecchio non previsto: resta visibile
+  return`<div class="seg ${cls}"><input type="hidden" name="${k}" value="${esc(v)}">${
+    opts.map(o=>`<button type="button" data-v="${esc(o)}" class="${o===v?'on':''}" onclick="segPick(this)">${esc(o)}</button>`).join('')}</div>`
+}
+function segPick(b){
+  const g=b.parentNode,inp=g.querySelector('input'),on=b.classList.contains('on')
+  g.querySelectorAll('button').forEach(x=>x.classList.remove('on'))
+  if(!on)b.classList.add('on')
+  inp.value=on?'':b.dataset.v
+}
+// Colore di marcatura internazionale dall'anno di nascita (ultima cifra)
+const QCOL=['Blu','Bianco','Giallo','Rosso','Verde','Blu','Bianco','Giallo','Rosso','Verde']
+function qColor(yr){const s=String(yr||'').trim();return /^\d{4}$/.test(s)?QCOL[+s[3]]:''}
+function autoColor(inp){
+  const sel=inp.form&&inp.form.elements.colore
+  if(!sel||sel.dataset.manual==='1')return
+  sel.value=qColor(inp.value)
+}
 function fs(k,d,opts){const v=d[k]||'';return`<select name="${k}">${opts.map(o=>`<option value="${o}"${v===o?' selected':''}>${o||'— seleziona —'}</option>`).join('')}</select>`}
 function ft(k,d,ph=''){return`<textarea name="${k}" placeholder="${ph}">${esc(d[k]??'')}</textarea>`}
 function fg(lbl,body,full=false){return`<div class="fgrp${full?' full':''}"><label>${lbl}</label>${body}</div>`}
@@ -1023,14 +1084,14 @@ function buildF(type,d){
   if(type==='arnia') return wrap(
     fgrid(fg('N° Arnia',`<input type="text" name="id" value="${esc(d.id||d._suggestId||'')}" placeholder="es. Arnia 31">`)+fg('Tipo',fs('tipo',d,['Langstroth','Dadant','Lusitana','Top-bar','Arnietta portasciami','Altro'])))+
     fg('Posizione / Apiario',fi('posizione',d))+
-    fgrid(fg('Data Installazione',fi('dataInst',d,'date'))+fg('N° Telaini',fi('telaini',d,'number')))+
+    fgrid(fg('Data Installazione',fi('dataInst',d,'date'))+fg('N° Telaini',fi('telaini',d,'int')))+
     fgrid(fg('Colore Contrassegno',fi('colore',d))+fg('Stato',fs('stato',d,['Attiva','Inattiva','In osservazione','Sciamata','Morta'])))+
     fg('Note',ft('note',d)))
 
   if(type==='regina') return wrap(
-    fgrid(fg('Arnia',asel(d))+fg('Anno Nascita',fi('annoNascita',d,'number','2024')))+
-    fgrid(fg('Anno Introduzione',fi('annoIntro',d,'number','2024'))+fg('Razza',fs('razza',d,['','Ligustica','Carnica','Buckfast','Locale','Ape nera F0','Ape nera F1','Ibrido','Altro'])))+
-    fgrid(fg('Colore Marcatura',fs('colore',d,['','Bianco','Giallo','Rosso','Verde','Blu']))+fg('Madre (arnia)',fi('madre',d,'text','facoltativo')))+
+    fgrid(fg('Arnia',asel(d))+fg('Anno Nascita',fi('annoNascita',d,'int','2024').replace('<input','<input oninput="autoColor(this)"')))+
+    fgrid(fg('Anno Introduzione',fi('annoIntro',d,'int','2024'))+fg('Razza',fs('razza',d,['','Ligustica','Carnica','Buckfast','Locale','Ape nera F0','Ape nera F1','Ibrido','Altro'])))+
+    fgrid(fg('Colore Marcatura',fs('colore',d,['','Bianco','Giallo','Rosso','Verde','Blu']).replace('<select','<select onchange="this.dataset.manual=1"'))+fg('Madre (arnia)',fi('madre',d,'text','facoltativo')))+
     fgrid(fg('Data Sostituzione',fi('dataSost',d,'date'))+fg('Motivo',fi('motivo',d)))+
     fg('Note',ft('note',d)))
 
@@ -1040,33 +1101,35 @@ function buildF(type,d){
     fgrid(fg('Patologia',fs('parassita',d,['','Varroa','Nosema','Mal di maggio','Peste americana','Peste europea','Calcificazione','Aethina tumida','Altro']))+
       fg('Prodotto',fs('prodotto',d,['','Api-Bioxal (ossalico)','Api-Bioxal sublimazione','Apivar (amitraz)','Thymovar (timolo)','ApiLife Var','MAQS (formico)','Acido formico','Altro'])))+
     fgrid(fg('Principio Attivo',fi('principio',d))+fg('Dose / Modalità',fi('dose',d)))+
-    fgrid(fg('Temperatura °C',fi('temp',d,'number'))+fg('Efficacia %',fi('efficacia',d,'number')))+
+    fgrid(fg('Temperatura °C',fi('temp',d,'text','es. 18'))+fg('Efficacia %',fi('efficacia',d,'dec')))+
     fg('Operatore',fi('operatore',d))+fg('Note',ft('note',d)))
 
   if(type==='produzione') return wrap(
     fgrid(fg('Data Raccolta',fi('data',d,'date'))+fg('Arnia',asel(d)))+
-    fgrid(fg('Tipo Miele',fs('tipoMiele',d,['','Millefiori','Acacia','Castagno','Tiglio','Girasole','Agrumi','Eucalipto','Melata','Altro']))+fg('Kg Raccolti',fi('kg',d,'number','0')))+
-    fgrid(fg('N° Melari',fi('melari',d,'number'))+fg('Umidità %',fi('umidita',d,'number')))+
+    fgrid(fg('Tipo Miele',fs('tipoMiele',d,['','Millefiori','Acacia','Castagno','Tiglio','Girasole','Agrumi','Eucalipto','Melata','Altro']))+fg('Kg Raccolti',fi('kg',d,'dec','0')))+
+    fgrid(fg('N° Melari',fi('melari',d,'int'))+fg('Umidità %',fi('umidita',d,'dec')))+
     fgrid(fg('Qualità',fs('qualita',d,['','Ottima','Buona','Discreta','Scartata']))+fg('Lotto',fi('lotto',d)))+
     fg('Note',ft('note',d)))
 
   if(type==='ispezione') return wrap(
     fgrid(fg('Data',fi('data',d,'date'))+fg('Arnia',asel(d)))+
-    fgrid(fg('Regina Presente',fs('regina',d,['','Sì','No','N/D']))+fg('Uova',fs('uova',d,['','Sì','No','N/D'])))+
-    fgrid(fg('Larve',fs('larve',d,['','Sì','No','N/D']))+fg('Covata',fs('covata',d,['','Regolare','Irregolare','Assente'])))+
-    fgrid(fg('Sciamatura',fs('sciamatura',d,['','No','Celle reali','Sciame emesso']))+fg('Forza (1-5)',fs('forza',d,['','1','2','3','4','5'])))+
-    fgrid(fg('Varroa caduta/24h',fi('varroa',d,'number'))+fg('Operatore',fi('operatore',d)))+
+    fg('Regina vista',fseg('regina',d,['Sì','No','N/D'],'good'))+
+    fg('Forza (1-5)',fseg('forza',d,['1','2','3','4','5']))+
+    fgrid(fg('Uova',fseg('uova',d,['Sì','No','N/D'],'good'))+fg('Larve',fseg('larve',d,['Sì','No','N/D'],'good')))+
+    fg('Covata',fseg('covata',d,['Regolare','Irregolare','Assente'],'good'))+
+    fg('Sciamatura',fseg('sciamatura',d,['No','Celle reali','Sciame emesso'],'good').replace('data-v="No"','data-v="No" data-good'))+
+    fgrid(fg('Varroa caduta/24h',fi('varroa',d,'dec'))+fg('Operatore',fi('operatore',d)))+
     fg('Problemi Rilevati',ft('problemi',d))+fg('Interventi Eseguiti',ft('interventi',d)))
 
   if(type==='spesa') return wrap(
-    fgrid(fg('Data',fi('data',d,'date'))+fg('Importo €',fi('importo',d,'number','0')))+
+    fgrid(fg('Data',fi('data',d,'date'))+fg('Importo €',fi('importo',d,'dec','0')))+
     fg('Descrizione',fi('descrizione',d,'text','es. Acquisto arnia'))+
     fg('Categoria',fs('categoria',d,['','Attrezzatura','Arnie / Nuclei','Regine','Medicinali / Trattamenti','Miele e vasetti','Trasporto','Formazione','Altro']))+
     fg('Fornitore',fi('fornitore',d))+
     fg('Note',ft('note',d)))
 
   if(type==='vendita') return wrap(
-    fgrid(fg('Data',fi('data',d,'date'))+fg('Importo €',fi('importo',d,'number','0')))+
+    fgrid(fg('Data',fi('data',d,'date'))+fg('Importo €',fi('importo',d,'dec','0')))+
     fg('Acquirente',fi('acquirente',d,'text','es. Mario Rossi'))+
     fgrid(fg('Prodotto',fs('prodotto',d,['','Miele','Propoli','Cera','Sciame','Nucleo','Pappa reale','Polline','Altro']))+fg('Quantità',fi('quantita',d,'text','es. 3 kg')))+
     fg('Note',ft('note',d)))
@@ -1074,10 +1137,12 @@ function buildF(type,d){
   return''
 }
 
+const NUM_F=['kg','umidita','importo','efficacia','varroa','temp','telaini','melari','annoNascita','annoIntro']
 function submitF(e,type){
   e.preventDefault()
   const fd=new FormData(e.target),data={}
   fd.forEach((v,k)=>data[k]=v)
+  NUM_F.forEach(k=>{if(typeof data[k]==='string')data[k]=data[k].trim().replace(',','.')})
   const coll=COLL[type]
   if(type==='arnia'){
     data.id=(data.id||'').trim()

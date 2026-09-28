@@ -1,4 +1,4 @@
-const CACHE = 'apiario-v17'
+const CACHE = 'apiario-v18'
 const STATIC = ['./manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png']
 
 self.addEventListener('install', e => {
