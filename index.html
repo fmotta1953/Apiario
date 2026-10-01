@@ -178,6 +178,17 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
 .btn-ai{display:block;width:100%;min-height:48px;margin-top:8px;border:1.5px solid var(--gold);border-radius:12px;
   background:var(--white);color:var(--amber);font-size:1rem;font-weight:700;cursor:pointer}
 .btn-ai:disabled{opacity:.6}
+/* foto delle regine */
+.foto-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.foto-th{position:relative;width:84px;height:84px}
+.foto-th img{width:100%;height:100%;object-fit:cover;border-radius:10px;border:1px solid var(--sep);background:var(--honey);cursor:zoom-in}
+.foto-th button{position:absolute;top:-8px;right:-8px;width:28px;height:28px;border-radius:50%;border:2px solid var(--white);
+  background:var(--red);color:var(--white);font-weight:700;cursor:pointer;line-height:1}
+.fgrp .foto-add{display:flex;align-items:center;justify-content:center;min-height:84px;margin:0;padding:0 16px;border:1.5px dashed var(--gold);
+  border-radius:10px;background:var(--honey);color:var(--amber);font-size:.95rem;font-weight:700;text-transform:none;letter-spacing:0;cursor:pointer}
+.q-th{width:52px;height:52px;object-fit:cover;border-radius:8px;flex-shrink:0;margin-right:10px;align-self:center;cursor:zoom-in}
+.foto-view{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.foto-view img{max-width:100%;max-height:100%;object-fit:contain}
 /* campi compilati dall'IA: da controllare prima di salvare */
 .fgrp.ai-set{outline:2px dashed var(--gold);outline-offset:4px;border-radius:6px}
 .seg.good button.on[data-v="No"]:not([data-good]),.seg.good button.on[data-v="Assente"],.seg.good button.on[data-v="Sciame emesso"]{background:var(--red);border-color:var(--red)}
@@ -1071,6 +1082,30 @@ const I18N={
 "Grabar",
 "Dicter",
 "Diktieren"
+],
+"Foto": [
+"Photos",
+"Fotos",
+"Photos",
+"Fotos"
+],
+"Aggiungi foto": [
+"Add photo",
+"Añadir foto",
+"Ajouter une photo",
+"Foto hinzufügen"
+],
+"Immagine non leggibile.": [
+"The image could not be read.",
+"No se pudo leer la imagen.",
+"Impossible de lire l’image.",
+"Das Bild konnte nicht gelesen werden."
+],
+"Le foto si aggiungono dall'app su iPhone, iPad o Mac.": [
+"Photos can be added from the app on iPhone, iPad or Mac.",
+"Las fotos se añaden desde la app en iPhone, iPad o Mac.",
+"Les photos s’ajoutent depuis l’app sur iPhone, iPad ou Mac.",
+"Fotos werden in der App auf iPhone, iPad oder Mac hinzugefügt."
 ],
 "Compila dai appunti": [
 "Fill in from notes",
@@ -4388,7 +4423,7 @@ function rArnia(){
 
   const qline=r=>[r.annoNascita?'Nata '+r.annoNascita:'',r.annoIntro?'Introdotta '+r.annoIntro:'',r.razza,r.colore?'Marcatura '+r.colore:''].filter(Boolean).join(' · ')
   h+=`<div class="clist">${q?`<div class="citem" onclick="openM('regina',${jsq(q.id)})">
-      <div class="tl-ico">👑</div>
+      ${fotoMini(q)||'<div class="tl-ico">👑</div>'}
       <div class="citem-left"><div class="citem-sub tl-wrap" style="color:var(--text)">${esc(qline(q))||'Dati non inseriti'}</div>
         ${q.madre?`<div class="citem-sub">Madre: ${esc(q.madre)}</div>`:''}</div>
       <div class="citem-right">${qst(q.annoIntro)}</div></div>`:'<div class="empty" style="padding:20px">Nessuna regina registrata</div>'}
@@ -4781,6 +4816,7 @@ function rRegine(q=''){
     const sub=[r.razza,r.colore?'Marcatura: '+r.colore:''].filter(Boolean).join(' · ')
     h+=`<div class="clist" style="margin-bottom:10px">
       <div class="citem">
+        ${fotoMini(r)}
         <div class="citem-left">
           <div class="citem-title">${esc(r.arniaId)}</div>
           <div class="citem-sub">Nata ${r.annoNascita||'N/D'} · Introdotta ${r.annoIntro||'N/D'}</div>
@@ -5126,6 +5162,7 @@ function del(coll,id,sec){
     if(n)msg=`Eliminare ${id}?\n\n${n} record collegati (regine, trattamenti, raccolte, ispezioni…) resteranno nello storico.`
   }
   if(!confirm(msg))return
+  if(coll==='regine')fotoList((db.regine.find(r=>r.id===id)||{}).foto).forEach(fotoRm)
   db[coll]=db[coll].filter(r=>r.id!==id);save();render(sec)
 }
 
@@ -5163,7 +5200,7 @@ function openM(type,id=null,preset={}){
   if(form&&type==='vendita')vTot(form)
   document.getElementById('overlay').classList.add('on')
 }
-function closeM(){recStop();document.getElementById('overlay').classList.remove('on');eId=null;eType=null}
+function closeM(){recStop();fotoDiscard();document.getElementById('overlay').classList.remove('on');eId=null;eType=null}
 function getRec(type,id){return db[COLL[type]].find(r=>r.id===id)||{}}
 
 // type 'dec' = numero con decimali, 'int' = intero: campi di testo con il tastierino numerico
@@ -5223,6 +5260,63 @@ function recEnd(err){
   if(err==='mic'||err==='speech')alert('Microfono o riconoscimento vocale non autorizzati: abilitali nelle Impostazioni del dispositivo, alla voce Apiario.')
   else if(err)alert('Riconoscimento vocale non disponibile in questo momento.')
 }
+// Foto delle regine: i file li salva l'app (cartella iCloud Drive), nel record resta l'elenco dei nomi
+// separati da virgola. Nel browser le foto non sono gestite, ma il campo si conserva.
+const FOTO_TMP={}  // anteprime delle foto appena aggiunte, finché il file non è scritto
+let FOTO_OLD=[],FOTO_NEW=[] // foto all'apertura del modulo / aggiunte (da eliminare se non si salva)
+function fotoNative(){return window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.photo}
+function fotoList(s){return String(s||'').split(',').filter(Boolean)}
+function fotoSrc(n){return FOTO_TMP[n]||'apiariofoto://f/'+encodeURIComponent(n)}
+function fotoRm(n){delete FOTO_TMP[n];const h=fotoNative();if(h)h.postMessage({op:'delete',name:n})}
+function fotoThumb(n){return`<div class="foto-th" data-n="${esc(n)}"><img src="${fotoSrc(n)}" alt="" onclick="fotoView(this.src)"><button type="button" onclick="fotoDel(this)">✕</button></div>`}
+function fotoField(d){
+  FOTO_OLD=fotoList(d.foto);FOTO_NEW=[]
+  const hid=`<input type="hidden" name="foto" value="${esc(d.foto||'')}">`
+  if(!fotoNative())return hid+'<div class="citem-sub">Le foto si aggiungono dall\'app su iPhone, iPad o Mac.</div>'
+  return hid+`<div class="foto-row">${FOTO_OLD.map(fotoThumb).join('')}
+    <label class="foto-add">📷 Aggiungi foto<input type="file" accept="image/*" multiple hidden onchange="fotoAdd(this)"></label></div>`
+}
+function fotoSync(row){row.closest('form').elements.foto.value=[...row.querySelectorAll('.foto-th')].map(x=>x.dataset.n).join(',')}
+// ridimensiona (lato lungo 1600 px, JPEG): una foto pesa circa 200-400 KB
+function fotoJpeg(file){
+  return new Promise((ok,ko)=>{
+    const u=URL.createObjectURL(file),img=new Image()
+    img.onload=()=>{
+      const k=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight))
+      const c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k)
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.82))
+    }
+    img.onerror=()=>{URL.revokeObjectURL(u);ko()}
+    img.src=u
+  })
+}
+async function fotoAdd(inp){
+  const row=inp.closest('.foto-row'),add=inp.closest('.foto-add')
+  for(const f of [...inp.files]){
+    let url;try{url=await fotoJpeg(f)}catch(e){alert('Immagine non leggibile.');continue}
+    const n='regina-'+uid()+'.jpg'
+    FOTO_TMP[n]=url;FOTO_NEW.push(n)
+    fotoNative().postMessage({op:'save',name:n,data:url.split(',')[1]})
+    add.insertAdjacentHTML('beforebegin',fotoThumb(n))
+  }
+  inp.value='';fotoSync(row)
+}
+function fotoDel(b){
+  const th=b.closest('.foto-th'),row=th.parentNode,n=th.dataset.n
+  // aggiunta in questa modifica: il file non serve più; se era già salvata, si elimina al salvataggio
+  if(FOTO_NEW.includes(n)){FOTO_NEW=FOTO_NEW.filter(x=>x!==n);fotoRm(n)}
+  th.remove();fotoSync(row)
+}
+// al salvataggio: elimina i file delle foto tolte; quelle nuove restano
+function fotoCommit(val){const keep=fotoList(val);FOTO_OLD.filter(n=>!keep.includes(n)).forEach(fotoRm);FOTO_OLD=[];FOTO_NEW=[]}
+// modulo chiuso senza salvare: le foto appena aggiunte non servono
+function fotoDiscard(){FOTO_NEW.forEach(fotoRm);FOTO_NEW=[];FOTO_OLD=[]}
+function fotoView(src){
+  const v=document.createElement('div');v.className='foto-view';v.innerHTML=`<img src="${esc(src)}" alt="">`
+  v.onclick=()=>v.remove();document.body.appendChild(v)
+}
+function fotoMini(r){const n=fotoList(r.foto)[0];return n&&fotoNative()?`<img class="q-th" src="${fotoSrc(n)}" alt="" onclick="event.stopPropagation();fotoView(this.src)">`:''}
+
 // Compilazione dei campi dalle note con Apple Intelligence (solo app nativa, se il dispositivo la supporta)
 let AI_BTN=null
 function aiNative(){return window.__AI__&&window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.autofill}
@@ -5294,6 +5388,7 @@ function buildF(type,d){
     fgrid(fg('Anno Introduzione',fi('annoIntro',d,'int','2024'))+fg('Razza',fs('razza',d,['','Ligustica','Carnica','Buckfast','Locale','Ape nera F0','Ape nera F1','Ibrido','Altro'])))+
     fgrid(fg('Colore Marcatura',fs('colore',d,['','Bianco','Giallo','Rosso','Verde','Blu']).replace('<select','<select onchange="this.dataset.manual=1"'))+fg('Madre (arnia)',fi('madre',d,'text','facoltativo')))+
     fgrid(fg('Data Sostituzione',fi('dataSost',d,'date'))+fg('Motivo',fi('motivo',d)))+
+    fg('Foto',fotoField(d))+
     fg('Note',ft('note',d)))
 
   if(type==='trattamento') return wrap(
@@ -5401,6 +5496,7 @@ function submitF(e,type){
   NUM_F.forEach(k=>{if(typeof data[k]==='string')data[k]=data[k].trim().replace(',','.')})
   if((type==='produzione'||type==='listino')&&U()==='lb'&&data.kg)data.kg=String(Math.round(fromU(data.kg)*1000)/1000)
   const coll=COLL[type]
+  if(type==='regina')fotoCommit(data.foto)
   if(type==='vendita'){
     const n=(rows.r_prodotto||[]).length
     data.righe=[...Array(n)].map((_,i)=>({prodotto:rows.r_prodotto[i]||'',tipoMiele:(rows.r_tipoMiele||[])[i]||'',formato:(rows.r_formato||[])[i]||'',
