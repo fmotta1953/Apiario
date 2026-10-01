@@ -175,6 +175,11 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   background:var(--honey);color:var(--text);font-size:1rem;font-weight:700;cursor:pointer}
 .btn-rec.on{background:var(--red);border-color:var(--red);color:var(--white);animation:recPulse 1.4s ease-in-out infinite}
 @keyframes recPulse{50%{opacity:.75}}
+.btn-ai{display:block;width:100%;min-height:48px;margin-top:8px;border:1.5px solid var(--gold);border-radius:12px;
+  background:var(--white);color:var(--amber);font-size:1rem;font-weight:700;cursor:pointer}
+.btn-ai:disabled{opacity:.6}
+/* campi compilati dall'IA: da controllare prima di salvare */
+.fgrp.ai-set{outline:2px dashed var(--gold);outline-offset:4px;border-radius:6px}
 .seg.good button.on[data-v="No"]:not([data-good]),.seg.good button.on[data-v="Assente"],.seg.good button.on[data-v="Sciame emesso"]{background:var(--red);border-color:var(--red)}
 
 /* ── MENU ALTRO ── */
@@ -1066,6 +1071,36 @@ const I18N={
 "Grabar",
 "Dicter",
 "Diktieren"
+],
+"Compila dai appunti": [
+"Fill in from notes",
+"Rellenar desde las notas",
+"Remplir depuis les notes",
+"Aus Notizen ausfüllen"
+],
+"Compilo…": [
+"Filling in…",
+"Rellenando…",
+"Remplissage…",
+"Fülle aus…"
+],
+"Detta o scrivi prima le note dell'ispezione.": [
+"Dictate or write the inspection notes first.",
+"Dicta o escribe primero las notas de la inspección.",
+"Dictez ou écrivez d’abord les notes de la visite.",
+"Zuerst die Notizen zur Durchsicht diktieren oder schreiben."
+],
+"Compilazione non riuscita: inserisci i dati a mano.": [
+"Could not fill in the fields: please enter the data manually.",
+"No se pudieron rellenar los campos: introduce los datos a mano.",
+"Remplissage impossible : saisissez les données à la main.",
+"Ausfüllen nicht möglich: bitte Daten von Hand eingeben."
+],
+"Nelle note non ho trovato dati da inserire nei campi.": [
+"No data for the fields was found in the notes.",
+"No se encontraron datos para los campos en las notas.",
+"Aucune donnée pour les champs n’a été trouvée dans les notes.",
+"In den Notizen wurden keine Daten für die Felder gefunden."
 ],
 "Ferma": [
 "Stop",
@@ -5188,6 +5223,40 @@ function recEnd(err){
   if(err==='mic'||err==='speech')alert('Microfono o riconoscimento vocale non autorizzati: abilitali nelle Impostazioni del dispositivo, alla voce Apiario.')
   else if(err)alert('Riconoscimento vocale non disponibile in questo momento.')
 }
+// Compilazione dei campi dalle note con Apple Intelligence (solo app nativa, se il dispositivo la supporta)
+let AI_BTN=null
+function aiNative(){return window.__AI__&&window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.autofill}
+function aiBtn(){return aiNative()?'<button type="button" class="btn-ai" onclick="aiRun(this)">✨ Compila dai appunti</button>':''}
+function aiRun(b){
+  recStop()
+  const text=(b.form.elements.note.value||'').trim()
+  if(!text){alert('Detta o scrivi prima le note dell\'ispezione.');return}
+  AI_BTN=b;b.disabled=true;b.textContent='⏳ Compilo…'
+  aiNative().postMessage(text)
+}
+function aiFill(f){
+  const b=AI_BTN;AI_BTN=null
+  if(!b||!b.isConnected)return // modulo chiuso nel frattempo
+  b.disabled=false;b.textContent='✨ Compila dai appunti'
+  if(!f){alert('Compilazione non riuscita: inserisci i dati a mano.');return}
+  const form=b.form;let n=0
+  Object.entries(f).forEach(([k,v])=>{
+    const inp=form.elements[k];if(!inp||!v)return
+    const seg=inp.closest('.seg')
+    if(seg){
+      const btn=[...seg.querySelectorAll('button')].find(x=>x.dataset.v===v);if(!btn)return
+      seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===btn));inp.value=v
+    }else if(inp.tagName==='TEXTAREA'){
+      if(inp.value.includes(v))return
+      inp.value=inp.value.trim()?inp.value.trim()+'\n'+v:v
+    }else{
+      const num=String(v).replace(',','.');if(k==='varroa'&&!/^\d+(\.\d+)?$/.test(num))return
+      inp.value=num
+    }
+    inp.closest('.fgrp').classList.add('ai-set');n++
+  })
+  if(!n)alert('Nelle note non ho trovato dati da inserire nei campi.')
+}
 // Colore di marcatura internazionale dall'anno di nascita (ultima cifra)
 const QCOL=['Blu','Bianco','Giallo','Rosso','Verde','Blu','Bianco','Giallo','Rosso','Verde']
 function qColor(yr){const s=String(yr||'').trim();return /^\d{4}$/.test(s)?QCOL[+s[3]]:''}
@@ -5257,7 +5326,7 @@ function buildF(type,d){
     fg('Sciamatura',fseg('sciamatura',d,['No','Celle reali','Sciame emesso'],'good').replace('data-v="No"','data-v="No" data-good'))+
     fg('Conta varroa',fseg('varroaMetodo',d,['Caduta 24h','Zucchero a velo','Alcol','CO2']))+
     fgrid(fg('Varroa (acari/24h o su 300 api)',fi('varroa',d,'dec'))+fg('Operatore',fi('operatore',d)))+
-    fg('Note',recBtn()+ft('note',d))+
+    fg('Note',recBtn()+ft('note',d)+aiBtn())+
     fg('Problemi Rilevati',ft('problemi',d))+fg('Interventi Eseguiti',ft('interventi',d)))
 
   if(type==='spesa') return wrap(
