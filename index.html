@@ -170,6 +170,11 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   border-radius:12px;background:var(--honey);color:var(--text);font-size:.95rem;font-weight:600;cursor:pointer}
 .seg button.on{background:var(--amber);border-color:var(--amber);color:var(--white)}
 .seg.good button.on[data-v="Sì"],.seg.good button.on[data-v="Regolare"],.seg.good button.on[data-v="No"][data-good]{background:var(--green);border-color:var(--green)}
+/* dettatura note: pulsante grande, usabile con i guanti */
+.btn-rec{display:block;width:100%;min-height:52px;margin-bottom:8px;border:1.5px solid var(--amber);border-radius:12px;
+  background:var(--honey);color:var(--text);font-size:1rem;font-weight:700;cursor:pointer}
+.btn-rec.on{background:var(--red);border-color:var(--red);color:var(--white);animation:recPulse 1.4s ease-in-out infinite}
+@keyframes recPulse{50%{opacity:.75}}
 .seg.good button.on[data-v="No"]:not([data-good]),.seg.good button.on[data-v="Assente"],.seg.good button.on[data-v="Sciame emesso"]{background:var(--red);border-color:var(--red)}
 
 /* ── MENU ALTRO ── */
@@ -1055,6 +1060,30 @@ const I18N={
 "Notas",
 "Notes",
 "Notizen"
+],
+"Registra": [
+"Record",
+"Grabar",
+"Dicter",
+"Diktieren"
+],
+"Ferma": [
+"Stop",
+"Detener",
+"Arrêter",
+"Stopp"
+],
+"Microfono o riconoscimento vocale non autorizzati: abilitali nelle Impostazioni del dispositivo, alla voce Apiario.": [
+"Microphone or speech recognition not allowed: enable them in the device Settings, under Apiario.",
+"Micrófono o reconocimiento de voz no autorizados: actívalos en los Ajustes del dispositivo, en Apiario.",
+"Micro ou reconnaissance vocale non autorisés : activez-les dans les Réglages de l’appareil, à la rubrique Apiario.",
+"Mikrofon oder Spracherkennung nicht erlaubt: in den Geräteeinstellungen unter Apiario aktivieren."
+],
+"Riconoscimento vocale non disponibile in questo momento.": [
+"Speech recognition is not available right now.",
+"El reconocimiento de voz no está disponible en este momento.",
+"La reconnaissance vocale n’est pas disponible pour le moment.",
+"Spracherkennung ist derzeit nicht verfügbar."
 ],
 "Salva": [
 "Save",
@@ -4249,6 +4278,7 @@ const EVR={
     const vr=vbdg(r)
     return{d:r.data,ico:'🔍',title:`Ispezione · ${fmt(r.data)}`,body:
       (rg||fz||vr?`<div class="citem-sub" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${rg}${fz}${vr}</div>`:'')+
+      (r.note?`<div class="citem-sub tl-wrap">📝 ${esc(r.note)}</div>`:'')+
       (r.problemi?`<div class="citem-sub tl-wrap">⚠️ ${esc(r.problemi)}</div>`:'')+
       (r.interventi?`<div class="citem-sub tl-wrap">✅ ${esc(r.interventi)}</div>`:'')}
   },
@@ -4806,6 +4836,7 @@ function rIsp(q=''){
         <div class="citem-left">
           <div class="citem-title">${fmt(i.data)} · ${esc(i.arniaId)}</div>
           <div class="citem-sub" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${rg} ${fz} ${vbdg(i)}</div>
+          ${i.note?`<div class="citem-sub tl-wrap" style="margin-top:4px">📝 ${esc(i.note)}</div>`:''}
           ${i.problemi?`<div class="citem-sub" style="margin-top:4px">⚠️ ${esc(i.problemi)}</div>`:''}
           ${i.interventi?`<div class="citem-sub">✅ ${esc(i.interventi)}</div>`:''}
         </div>
@@ -5097,7 +5128,7 @@ function openM(type,id=null,preset={}){
   if(form&&type==='vendita')vTot(form)
   document.getElementById('overlay').classList.add('on')
 }
-function closeM(){document.getElementById('overlay').classList.remove('on');eId=null;eType=null}
+function closeM(){recStop();document.getElementById('overlay').classList.remove('on');eId=null;eType=null}
 function getRec(type,id){return db[COLL[type]].find(r=>r.id===id)||{}}
 
 // type 'dec' = numero con decimali, 'int' = intero: campi di testo con il tastierino numerico
@@ -5119,6 +5150,43 @@ function segPick(b){
   g.querySelectorAll('button').forEach(x=>x.classList.remove('on'))
   if(!on)b.classList.add('on')
   inp.value=on?'':b.dataset.v
+}
+// Dettatura delle note d'ispezione: nell'app usa il riconoscimento vocale del sistema (bridge "dictate"),
+// nel browser la Web Speech API se c'è. Solo testo: l'audio non viene conservato.
+const SR=typeof window!=='undefined'?(window.SpeechRecognition||window.webkitSpeechRecognition):null
+const SR_LANG={it:'it-IT',en:'en-US',es:'es-ES',fr:'fr-FR',de:'de-DE'}
+let REC=null // {btn,ta,base,web}
+function recNative(){return window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.dictate}
+function recBtn(){return recNative()||SR?'<button type="button" class="btn-rec" onclick="recToggle(this)">🎙 Registra</button>':''}
+function recToggle(b){
+  if(REC){recStop();return}
+  const ta=b.parentNode.querySelector('textarea')
+  REC={btn:b,ta,base:ta.value.replace(/\s+$/,'')}
+  b.classList.add('on');b.textContent='⏹ Ferma'
+  const h=recNative()
+  if(h){h.postMessage('start');return}
+  try{
+    const r=new SR();r.lang=SR_LANG[LANG]||'it-IT';r.continuous=true;r.interimResults=true
+    r.onresult=e=>{let s='';for(const x of e.results)s+=x[0].transcript;recText(s.trim())}
+    r.onerror=e=>{if(REC&&REC.web===r)recEnd(e.error==='not-allowed'||e.error==='service-not-allowed'?'mic':e.error==='no-speech'||e.error==='aborted'?'':'unavailable')}
+    r.onend=()=>{if(REC&&REC.web===r)recEnd('')}
+    REC.web=r;r.start()
+  }catch(e){recEnd('unavailable')}
+}
+// ogni registrazione va a capo dopo il testo già presente
+function recText(s){if(REC)REC.ta.value=REC.base&&s?REC.base+'\n'+s:REC.base||s}
+function recStop(){
+  if(!REC)return
+  const r=REC.web,h=recNative()
+  recEnd('')
+  if(r)try{r.stop()}catch(e){}else if(h)h.postMessage('stop')
+}
+function recEnd(err){
+  if(!REC)return
+  const b=REC.btn;REC=null
+  b.classList.remove('on');b.textContent='🎙 Registra'
+  if(err==='mic'||err==='speech')alert('Microfono o riconoscimento vocale non autorizzati: abilitali nelle Impostazioni del dispositivo, alla voce Apiario.')
+  else if(err)alert('Riconoscimento vocale non disponibile in questo momento.')
 }
 // Colore di marcatura internazionale dall'anno di nascita (ultima cifra)
 const QCOL=['Blu','Bianco','Giallo','Rosso','Verde','Blu','Bianco','Giallo','Rosso','Verde']
@@ -5189,6 +5257,7 @@ function buildF(type,d){
     fg('Sciamatura',fseg('sciamatura',d,['No','Celle reali','Sciame emesso'],'good').replace('data-v="No"','data-v="No" data-good'))+
     fg('Conta varroa',fseg('varroaMetodo',d,['Caduta 24h','Zucchero a velo','Alcol','CO2']))+
     fgrid(fg('Varroa (acari/24h o su 300 api)',fi('varroa',d,'dec'))+fg('Operatore',fi('operatore',d)))+
+    fg('Note',recBtn()+ft('note',d))+
     fg('Problemi Rilevati',ft('problemi',d))+fg('Interventi Eseguiti',ft('interventi',d)))
 
   if(type==='spesa') return wrap(
@@ -5256,6 +5325,7 @@ function buildF(type,d){
 const NUM_F=['kg','umidita','importo','efficacia','varroa','temp','telaini','melari','annoNascita','annoIntro','qta','numero','sospensione','nArnie','sconto','prezzo']
 function submitF(e,type){
   e.preventDefault()
+  recStop()
   const fd=new FormData(e.target),data={}
   const rows={} // campi ripetuti delle righe di vendita (r_prodotto, r_qta, …)
   fd.forEach((v,k)=>{if(k.startsWith('r_'))(rows[k]=rows[k]||[]).push(...[].concat(v));else data[k]=v})
