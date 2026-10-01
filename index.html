@@ -308,6 +308,12 @@ body{min-height:100%;background:var(--honey);font-family:-apple-system,sans-seri
   .modal-bar{display:none}
   .modal-body{padding-bottom:20px}
 }
+/* Mac: i quattro riquadri della scheda arnia su una riga; intestazione che fa da barra del titolo */
+@media (min-width:820px){
+  .det-a .stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .mac .topbar{padding-top:16px;padding-bottom:16px}
+}
+@media (min-width:1100px){.det-a .stats{grid-template-columns:1fr 1fr}}
 /* scheda arnia su due colonne (dati | storico) solo se c'è spazio: iPad orizzontale, Mac */
 @media (min-width:1100px){
   .qact{grid-template-columns:repeat(6,1fr)}
