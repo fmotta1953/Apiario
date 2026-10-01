@@ -5268,7 +5268,12 @@ function fotoNative(){return window.webkit&&webkit.messageHandlers&&webkit.messa
 function fotoList(s){return String(s||'').split(',').filter(Boolean)}
 function fotoSrc(n){return FOTO_TMP[n]||'apiariofoto://f/'+encodeURIComponent(n)}
 function fotoRm(n){delete FOTO_TMP[n];const h=fotoNative();if(h)h.postMessage({op:'delete',name:n})}
-function fotoThumb(n){return`<div class="foto-th" data-n="${esc(n)}"><img src="${fotoSrc(n)}" alt="" onclick="fotoView(this.src)"><button type="button" onclick="fotoDel(this)">✕</button></div>`}
+// foto scattata su un altro dispositivo: il primo download da iCloud può richiedere tempo, si riprova
+function fotoRetry(img){
+  const n=+(img.dataset.r||0);if(n>=12)return
+  img.dataset.r=n+1;setTimeout(()=>{if(img.isConnected)img.src=img.src.split('?')[0]+'?r='+(n+1)},5000)
+}
+function fotoThumb(n){return`<div class="foto-th" data-n="${esc(n)}"><img src="${fotoSrc(n)}" alt="" onerror="fotoRetry(this)" onclick="fotoView(this.src)"><button type="button" onclick="fotoDel(this)">✕</button></div>`}
 function fotoField(d){
   FOTO_OLD=fotoList(d.foto);FOTO_NEW=[]
   const hid=`<input type="hidden" name="foto" value="${esc(d.foto||'')}">`
@@ -5315,7 +5320,7 @@ function fotoView(src){
   const v=document.createElement('div');v.className='foto-view';v.innerHTML=`<img src="${esc(src)}" alt="">`
   v.onclick=()=>v.remove();document.body.appendChild(v)
 }
-function fotoMini(r){const n=fotoList(r.foto)[0];return n&&fotoNative()?`<img class="q-th" src="${fotoSrc(n)}" alt="" onclick="event.stopPropagation();fotoView(this.src)">`:''}
+function fotoMini(r){const n=fotoList(r.foto)[0];return n&&fotoNative()?`<img class="q-th" src="${fotoSrc(n)}" alt="" onerror="fotoRetry(this)" onclick="event.stopPropagation();fotoView(this.src)">`:''}
 
 // Compilazione dei campi dalle note con Apple Intelligence (solo app nativa, se il dispositivo la supporta)
 let AI_BTN=null
