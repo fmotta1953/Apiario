@@ -5572,6 +5572,8 @@ function submitF(e,type){
   else{if(type!=='arnia')data.id=uid();db[coll].push(data)}
   // ridisegna la sezione visibile (anche la scheda arnia se il form è partito da lì)
   save();closeM();render(curSec)
+  // app: conta le schede salvate (richiesta di recensione); nel browser non fa nulla
+  window.webkit?.messageHandlers?.saved?.postMessage(1)
 }
 
 load();initI18n();rDash()
